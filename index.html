@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IsaMarket | ISA Lille Sportsbook & Prediction League</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  
+  <!-- Athletic & Performance Google Fonts: Barlow Condensed, Teko, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['"Barlow Condensed"', 'sans-serif'],
+            teko: ['Teko', 'sans-serif'],
+          },
+          colors: {
+            pitch: {
+              950: '#07080b',
+              900: '#0b0e14',
+              850: '#10141d',
+              800: '#161c28',
+              750: '#1c2433',
+              700: '#252f44',
+              600: '#34425f',
+              border: '#232c3f',
+            },
+            squid: {
+              DEFAULT: '#ff2a6d',
+              400: '#ff4d84',
+              500: '#ff2a6d',
+              600: '#e01655',
+              700: '#b80c41',
+              light: '#ffe5ec',
+            },
+            volt: {
+              DEFAULT: '#00f59b',
+              300: '#5cffbe',
+              400: '#1ef7a4',
+              500: '#00f59b',
+              600: '#00c77d',
+              bg: 'rgba(0, 245, 155, 0.12)',
+            },
+            trophy: {
+              DEFAULT: '#ffb703',
+              400: '#ffc83b',
+              500: '#ffb703',
+              600: '#e09f00',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07080b;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(0, 245, 155, 0.05) 0%, transparent 60%),
+        linear-gradient(to bottom, #07080b 0%, #0b0e14 100%);
+      background-attachment: fixed;
+    }
+    
+    /* Athletic scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #07080b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #252f44;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #34425f;
+    }
+
+    /* Athletic angle effects */
+    .sport-skew {
+      transform: skewX(-10deg);
+    }
+    .sport-unskew {
+      transform: skewX(10deg);
+    }
+
+    /* Smooth live sports ticker marquee */
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-track {
+      display: flex;
+      width: 200%;
+      animation: marquee 38s linear infinite;
+    }
+    .ticker-track:hover {
+      animation-play-state: paused;
+    }
+
+    /* Sport card hover physics */
+    .sport-card {
+      transition: transform 0.16s ease-out, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+    .sport-card:hover {
+      transform: translateY(-3px);
+      border-color: #34425f;
+      box-shadow: 0 16px 30px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 245, 155, 0.15);
+    }
+
+    /* Scoreboard numbers tabular */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Perforated bet slip ticket line */
+    .ticket-dashed-line {
+      background-image: linear-gradient(to right, #252f44 50%, transparent 50%);
+      background-size: 10px 1px;
+      background-repeat: repeat-x;
+      height: 1px;
+    }
+
+    /* Stadium floodlight grid texture */
+    .stadium-grid {
+      background-size: 32px 32px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-squid selection:text-white">
+
+  <!-- ================= LIVE STADIUM TICKER RIBBON (ESPN / BROADCAST STYLE) ================= -->
+  <div class="bg-pitch-950 border-b border-pitch-800 text-xs text-slate-300 overflow-hidden relative z-50">
+    <div class="flex items-center h-8">
+      
+      <!-- Ticker Static Label -->
+      <div class="bg-squid px-3 h-full flex items-center gap-1.5 shrink-0 z-20 shadow-md">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <span class="font-display font-black text-white uppercase tracking-wider text-[11px] italic">LIVE MATCHDAY</span>
+      </div>
+
+      <!-- Scrolling Ticker Items -->
+      <div class="overflow-hidden whitespace-nowrap flex-1 relative">
+        <div class="ticker-track text-[11px] font-medium tracking-wide">
+          <!-- Item 1 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">⏱️ William Lecture Volunteering:</span>
+            <span class="text-volt font-bold">&lt; 15 mins @ 1.47</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">≥ 15 mins @ 3.12</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- Item 2 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">⚽ LOSC Lille Ligue 1 Top 3:</span>
+            <span class="text-volt font-bold">YES @ 1.72</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 2.38</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- Item 3 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🏆 FIFA World Cup 2026: France Final:</span>
+            <span class="text-volt font-bold">YES @ 2.44</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 1.69</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- Item 4 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🎾 Roland-Garros: Carlos Alcaraz Win:</span>
+            <span class="text-volt font-bold">YES @ 1.54</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 2.86</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- Item 5 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-trophy uppercase">🥇 Leaderboard:</span>
+            <span class="text-white font-bold">Thomas Bernard leading with 14,820 🦑</span>
+            <span class="text-volt font-semibold">(4W Streak 🔥)</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- Item 6 -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🎓 ISA Promo 2026:</span>
+            <span class="text-slate-300">Classroom sports betting simulation & European odds exchange</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- DUPLICATE FOR SEAMLESS LOOP -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">⏱️ William Lecture Volunteering:</span>
+            <span class="text-volt font-bold">&lt; 15 mins @ 1.47</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">≥ 15 mins @ 3.12</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">⚽ LOSC Lille Ligue 1 Top 3:</span>
+            <span class="text-volt font-bold">YES @ 1.72</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 2.38</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🏆 FIFA World Cup 2026: France Final:</span>
+            <span class="text-volt font-bold">YES @ 2.44</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 1.69</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🎾 Roland-Garros: Carlos Alcaraz Win:</span>
+            <span class="text-volt font-bold">YES @ 1.54</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-squid font-bold">NO @ 2.86</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-trophy uppercase">🥇 Leaderboard:</span>
+            <span class="text-white font-bold">Thomas Bernard leading with 14,820 🦑</span>
+            <span class="text-volt font-semibold">(4W Streak 🔥)</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Faucet quick trigger right on the ticker -->
+      <button onclick="openFaucetModal()" class="hidden md:flex items-center gap-1.5 px-3 h-full bg-pitch-900 hover:bg-pitch-800 text-volt text-[11px] font-bold border-l border-pitch-800 transition shrink-0">
+        <i data-lucide="zap" class="w-3 h-3 text-volt"></i>
+        <span>Free +250 Squid</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ================= MAIN ATHLETIC HEADER ================= -->
+  <header class="sticky top-0 z-40 bg-pitch-950/95 backdrop-blur-md border-b border-pitch-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo & Sports Title -->
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="#" class="flex items-center gap-3 group">
+          <div class="relative">
+            <div class="w-10 h-10 rounded-lg bg-pitch-850 p-0.5 border-2 border-squid group-hover:border-volt transition-colors duration-200 overflow-hidden flex items-center justify-center shadow-lg">
+              <img 
+                src="assets/logo.png" 
+                alt="ISA Lille Squid Logo" 
+                class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                onerror="this.src='public/logo.png'"
+              >
+            </div>
+            <span class="absolute -bottom-1 -right-1 w-3 h-3 bg-volt border-2 border-pitch-950 rounded-full"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-display font-black text-2xl uppercase tracking-tighter text-white flex items-center italic">
+                ISA<span class="text-squid group-hover:text-volt transition-colors">MARKET</span>
+              </span>
+              <span class="text-[10px] font-display font-extrabold uppercase tracking-widest bg-pitch-800 text-slate-300 px-1.5 py-0.5 rounded border border-pitch-700">
+                SPORTSBOOK
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase leading-none">
+              Univ. Lille • Sport Administration
+            </p>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center gap-1 ml-6 text-xs font-display font-bold uppercase tracking-wider">
+          <button onclick="filterCategory('all')" class="nav-btn px-3 py-1.5 rounded bg-pitch-800 text-white hover:bg-pitch-750 transition flex items-center gap-1.5 border border-pitch-700">
+            <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-volt"></i> Matches & Props
+          </button>
+          <a href="leaderboard.html" class="nav-btn px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-pitch-900 transition flex items-center gap-1.5">
+            <i data-lucide="trophy" class="w-3.5 h-3.5 text-trophy"></i> Championship
+          </a>
+          <button onclick="openPositionsModal()" class="nav-btn px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-pitch-900 transition flex items-center gap-1.5">
+            <i data-lucide="ticket" class="w-3.5 h-3.5 text-volt"></i> My Bets
+            <span id="nav-positions-count" class="bg-squid text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
+          </button>
+          <button onclick="openRulesModal()" class="nav-btn px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-pitch-900 transition flex items-center gap-1.5">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-400"></i> Odds Guide
+          </button>
+        </nav>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="flex-1 max-w-md hidden lg:block">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search match, William, LOSC, exams, campus..." 
+            oninput="handleSearch(this.value)"
+            class="w-full pl-10 pr-10 py-1.5 bg-pitch-900 border border-pitch-800 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt transition font-medium"
+          >
+          <kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 bg-pitch-800 border border-pitch-700 text-[10px] text-slate-400 px-1.5 py-0.5 rounded font-mono font-bold">⌘K</kbd>
+        </div>
+      </div>
+
+      <!-- User Bankroll & Profile -->
+      <div class="flex items-center gap-2.5">
+        
+        <!-- Faucet Quick Button -->
+        <button 
+          onclick="openFaucetModal()" 
+          title="Claim free Squid sports bankroll" 
+          class="hidden sm:inline-flex items-center gap-1.5 bg-volt/10 hover:bg-volt/20 text-volt border border-volt/30 hover:border-volt px-2.5 py-1.5 rounded text-xs font-display font-bold uppercase tracking-wider transition"
+        >
+          <i data-lucide="droplets" class="w-3.5 h-3.5 text-volt"></i>
+          <span>Faucet</span>
+        </button>
+
+        <!-- Digital Scoreboard Bankroll Counter -->
+        <div 
+          onclick="openPositionsModal()"
+          class="flex items-center gap-2.5 bg-pitch-900 border border-pitch-750 px-3.5 py-1 rounded shadow-inner cursor-pointer hover:border-volt transition group" 
+          title="View Active Bets & Portfolio"
+        >
+          <div class="w-6 h-6 rounded bg-squid/20 text-squid flex items-center justify-center text-xs font-bold shrink-0">
+            🦑
+          </div>
+          <div class="flex flex-col text-left">
+            <span class="text-[9px] text-slate-400 font-display font-bold tracking-wider uppercase leading-none">Bankroll (Squid)</span>
+            <span id="user-balance" class="font-teko text-xl font-bold text-white tracking-wide leading-none group-hover:text-volt transition">
+              1,000
+            </span>
+          </div>
+        </div>
+
+        <!-- Student Profile Button -->
+        <div class="relative">
+          <button id="profileBtn" onclick="toggleProfileDropdown()" class="flex items-center gap-2 bg-pitch-900 hover:bg-pitch-800 border border-pitch-750 rounded p-1.5 sm:px-2.5 transition">
+            <div class="w-7 h-7 rounded bg-pitch-800 border border-pitch-700 text-white font-display font-black text-xs flex items-center justify-center">
+              JM
+            </div>
+            <div class="hidden md:flex flex-col text-left">
+              <span class="text-xs font-bold text-white leading-tight">Jules Moreau</span>
+              <span class="text-[9px] font-display uppercase tracking-wider text-slate-400 font-semibold leading-none">M1 ISA</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 hidden md:inline"></i>
+          </button>
+
+          <!-- Dropdown menu -->
+          <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-60 bg-pitch-900 border border-pitch-700 rounded-lg shadow-2xl py-2 z-50">
+            <div class="px-4 py-2 border-b border-pitch-800">
+              <p class="text-xs font-bold text-white">Jules Moreau</p>
+              <p class="text-[10px] text-slate-400 font-mono">jules@univ-lille.fr • Promo 2026</p>
+            </div>
+            <button onclick="openPositionsModal(); toggleProfileDropdown()" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-pitch-800 flex items-center gap-2">
+              <i data-lucide="ticket" class="w-4 h-4 text-volt"></i> Active Bets & Slip
+            </button>
+            <a href="leaderboard.html" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-pitch-800 flex items-center gap-2">
+              <i data-lucide="trophy" class="w-4 h-4 text-trophy"></i> Championship Rank: <strong class="text-white">#8</strong>
+            </a>
+            <button onclick="openFaucetModal(); toggleProfileDropdown()" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-pitch-800 flex items-center gap-2">
+              <i data-lucide="droplets" class="w-4 h-4 text-volt"></i> Refill Bankroll (+250 🦑)
+            </button>
+            <div class="border-t border-pitch-800 my-1"></div>
+            <button onclick="resetDemoState(); toggleProfileDropdown()" class="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-pitch-800 flex items-center gap-2">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Bankroll to 1,000 🦑
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Mobile Search Bar -->
+    <div class="p-2.5 border-t border-pitch-800 lg:hidden bg-pitch-950">
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input 
+          type="text" 
+          placeholder="Search sport, William, LOSC, campus..." 
+          oninput="handleSearch(this.value)"
+          class="w-full pl-9 pr-3 py-1.5 bg-pitch-900 border border-pitch-800 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-volt"
+        >
+      </div>
+    </div>
+  </header>
+
+
+
+  <!-- ================= MAIN CONTENT WRAPPER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+    <!-- ================= FEATURED HEADLINE MATCHDAY PROP (SPORTS BROADCAST STYLE) ================= -->
+    <section id="hero-banner" class="relative overflow-hidden rounded-xl bg-pitch-900 border-2 border-pitch-700 p-5 sm:p-7 shadow-2xl stadium-grid">
+      
+      <!-- Floodlight highlight beam -->
+      <div class="absolute top-0 right-1/4 w-96 h-48 bg-volt/5 blur-2xl pointer-events-none"></div>
+
+      <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        
+        <!-- Left: Featured Prop Details -->
+        <div class="lg:col-span-8 space-y-4">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-display font-black uppercase tracking-wider bg-volt text-pitch-950 shadow">
+              <span class="w-2 h-2 rounded-full bg-pitch-950 animate-ping"></span>
+              HEADLINE IN-PLAY PROP
+            </span>
+            <span class="text-xs text-slate-300 flex items-center gap-1 font-semibold">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-trophy"></i> Resolves During Today's Lecture
+            </span>
+            <span class="text-slate-600">•</span>
+            <span class="text-xs text-slate-400 flex items-center gap-1 font-mono font-semibold">
+              <span>🦑</span> 56,800 SQUID STAKED
+            </span>
+          </div>
+
+          <div class="flex items-start gap-4">
+            <div class="w-14 h-14 rounded-lg bg-pitch-850 border-2 border-pitch-700 p-2 shrink-0 flex items-center justify-center text-3xl shadow-md">
+              ⏱️
+            </div>
+            <div>
+              <h1 class="text-2xl sm:text-3xl lg:text-4xl font-display font-black uppercase tracking-tight text-white leading-tight">
+                How many minutes before William talks about volunteering?
+              </h1>
+              <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl font-normal leading-relaxed">
+                Official timer starts the second class begins. Resolves to <strong>&lt; 15 mins</strong> if William mentions "volunteering", "volunteers", or "bénévolat" within the first 15 minutes of lecture!
+              </p>
+            </div>
+          </div>
+
+          <!-- European Odds Stadium Scoreboard Display -->
+          <div class="space-y-2 pt-2">
+            <div class="grid grid-cols-2 gap-4">
+              
+              <!-- Outcome 1: < 15 mins -->
+              <div class="p-3 bg-pitch-850 border border-pitch-750 rounded-lg flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">&lt; 15 MINS (FAVORITE)</span>
+                  <span class="font-teko text-3xl font-bold text-volt leading-none">ODDS 1.47</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-bold text-slate-300">68% PROB</span>
+                  <span class="text-[10px] text-slate-400 block">+47.1% Net Profit</span>
+                </div>
+              </div>
+
+              <!-- Outcome 2: >= 15 mins -->
+              <div class="p-3 bg-pitch-850 border border-pitch-750 rounded-lg flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">≥ 15 MINS (UNDERDOG)</span>
+                  <span class="font-teko text-3xl font-bold text-squid leading-none">ODDS 3.12</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-bold text-slate-300">32% PROB</span>
+                  <span class="text-[10px] text-slate-400 block">+212.5% Net Profit</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Stadium Dual Gauge Bar -->
+            <div class="h-3 w-full bg-pitch-950 rounded-sm overflow-hidden p-0.5 flex border border-pitch-800">
+              <div class="bg-volt h-full transition-all duration-500 rounded-l-sm" style="width: 68%;"></div>
+              <div class="bg-squid h-full transition-all duration-500 rounded-r-sm" style="width: 32%;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Instant Match Bet Slip Action Box -->
+        <div class="lg:col-span-4 bg-pitch-950 border-2 border-pitch-750 rounded-xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
+          <div class="flex items-center justify-between border-b border-pitch-800 pb-2.5">
+            <span class="text-xs font-display font-extrabold uppercase tracking-wider text-white flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-volt"></i> Quick Match Bet
+            </span>
+            <span class="text-[10px] font-mono text-slate-400">European Odds Format</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Bet Button < 15 mins -->
+            <button 
+              onclick="openBetModal(1, 'YES')"
+              class="flex flex-col items-center justify-center p-3 rounded bg-volt/10 hover:bg-volt/25 border-2 border-volt/40 hover:border-volt text-volt transition group"
+            >
+              <span class="text-[10px] font-display font-extrabold uppercase tracking-wider text-slate-300">&lt; 15 mins</span>
+              <span class="font-teko text-3xl font-black text-white group-hover:text-volt transition leading-none my-0.5">1.47</span>
+              <span class="text-[10px] font-bold text-volt">Bet Favorite →</span>
+            </button>
+
+            <!-- Bet Button >= 15 mins -->
+            <button 
+              onclick="openBetModal(1, 'NO')"
+              class="flex flex-col items-center justify-center p-3 rounded bg-squid/10 hover:bg-squid/25 border-2 border-squid/40 hover:border-squid text-squid transition group"
+            >
+              <span class="text-[10px] font-display font-extrabold uppercase tracking-wider text-slate-300">≥ 15 mins</span>
+              <span class="font-teko text-3xl font-black text-white group-hover:text-squid transition leading-none my-0.5">3.12</span>
+              <span class="text-[10px] font-bold text-squid">Bet Underdog →</span>
+            </button>
+          </div>
+
+          <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1.5 bg-pitch-900 py-2 rounded border border-pitch-800">
+            <i data-lucide="shield-check" class="w-4 h-4 text-volt shrink-0"></i>
+            <span>Verified in live lecture by ISA Class of 2026</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= MARKETS GRID HEADER ================= -->
+    <div class="flex items-center justify-between pt-2">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-display font-black uppercase tracking-tight text-white flex items-center gap-2.5">
+          <span>ACTIVE SPORTS MATCHES & PROPOSITIONS</span>
+          <span id="market-count-badge" class="text-xs font-display font-bold uppercase tracking-wider bg-pitch-800 text-volt px-2.5 py-0.5 rounded border border-pitch-700">
+            10 MARKETS
+          </span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-0.5">Place your predictions with fellow ISA Lille students • Settled in Squid</p>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button onclick="filterCategory('all')" class="text-xs font-display font-bold uppercase tracking-wider text-slate-400 hover:text-white transition flex items-center gap-1.5 bg-pitch-900 border border-pitch-800 px-3 py-1.5 rounded">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Refresh Odds
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MARKETS GRID (SPORTSBOOK CARDS) ================= -->
+    <div id="markets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- Dynamic Markets will be rendered by JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden py-16 text-center space-y-3 bg-pitch-900 border border-dashed border-pitch-800 rounded-xl">
+      <div class="w-12 h-12 rounded bg-pitch-800 text-slate-400 mx-auto flex items-center justify-center">
+        <i data-lucide="search-x" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-sm font-bold uppercase font-display tracking-wider text-white">No matches found</h3>
+      <p class="text-xs text-slate-400 max-w-sm mx-auto">Try searching for keywords like "LOSC", "William", "World Cup", or switch sport category.</p>
+      <button onclick="resetFilters()" class="text-xs font-display uppercase tracking-wider font-bold text-volt hover:underline">Reset Search & Categories</button>
+    </div>
+
+  </main>
+
+  <!-- ================= ATHLETIC FOOTER ================= -->
+  <footer class="bg-pitch-950 border-t border-pitch-800 mt-16 py-12 text-slate-400 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        
+        <!-- Col 1: Brand Info -->
+        <div class="space-y-3 md:col-span-2">
+          <div class="flex items-center gap-3">
+            <img src="assets/logo.png" alt="ISA Lille Squid Logo" class="w-9 h-9 rounded-lg object-contain border border-pitch-700 bg-pitch-900 p-0.5" onerror="this.src='public/logo.png'">
+            <span class="font-display font-black text-xl uppercase tracking-tight text-white italic">
+              ISA<span class="text-squid">MARKET</span> <span class="text-xs text-slate-400 font-normal">SPORTSBOOK</span>
+            </span>
+          </div>
+          <p class="text-slate-400 text-xs leading-relaxed max-w-md">
+            IsaMarket is the student-led sports prediction exchange designed exclusively for the <strong>International Sport Administration (ISA)</strong> curriculum at <strong>Université de Lille</strong>.
+          </p>
+          <p class="text-slate-500 text-[11px] leading-relaxed">
+            ⚠️ Educational sports administration simulation. Predictions are traded using virtual <strong>🦑 Squid</strong> currency with European Decimal Odds. No real fiat money is accepted or wagered.
+          </p>
+        </div>
+
+        <!-- Col 2: Sport Categories -->
+        <div class="space-y-2">
+          <h4 class="text-white font-display font-extrabold text-xs tracking-wider uppercase">Sports & Campus</h4>
+          <ul class="space-y-1.5 text-xs text-slate-400 font-medium">
+            <li><a href="#" onclick="filterCategory('isa')" class="hover:text-volt transition">ISA Campus & Lectures</a></li>
+            <li><a href="#" onclick="filterCategory('football')" class="hover:text-volt transition">Ligue 1 & LOSC Lille</a></li>
+            <li><a href="#" onclick="filterCategory('basketball')" class="hover:text-volt transition">Basketball & FFSU 3x3</a></li>
+            <li><a href="#" onclick="filterCategory('olympics')" class="hover:text-volt transition">FIFA World Cup & Tennis</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Student Hub -->
+        <div class="space-y-2">
+          <h4 class="text-white font-display font-extrabold text-xs tracking-wider uppercase">ISA Student League</h4>
+          <ul class="space-y-1.5 text-xs text-slate-400 font-medium">
+            <li><a href="leaderboard.html" class="hover:text-trophy transition flex items-center gap-1.5"><i data-lucide="trophy" class="w-3.5 h-3.5 text-trophy"></i> Championship Standings</a></li>
+            <li><a href="#" onclick="openPositionsModal()" class="hover:text-volt transition flex items-center gap-1.5"><i data-lucide="ticket" class="w-3.5 h-3.5 text-volt"></i> Active Bets & Portfolio</a></li>
+            <li><a href="#" onclick="openRulesModal()" class="hover:text-slate-200 transition flex items-center gap-1.5"><i data-lucide="help-circle" class="w-3.5 h-3.5"></i> How European Odds Work</a></li>
+            <li><a href="#" onclick="openFaucetModal()" class="hover:text-volt transition flex items-center gap-1.5"><i data-lucide="droplets" class="w-3.5 h-3.5 text-volt"></i> Bankroll Faucet (+250 🦑)</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="border-t border-pitch-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+        <div>
+          © 2026 IsaMarket • Built for ISA Lille Students (FSSEP - Université de Lille).
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="inline-flex items-center gap-1.5 text-volt font-semibold">
+            <span class="w-2 h-2 rounded-full bg-volt animate-pulse"></span>
+            Live Simulated Sportsbook Engine: Online
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ================= OFFICIAL ISA BET SLIP (DRAWER / TICKET DE PARIS) ================= -->
+  <div id="trade-drawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeTradeDrawer()"></div>
+
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-6">
+      <div class="w-screen max-w-md bg-pitch-900 border-l-2 border-pitch-700 shadow-2xl flex flex-col justify-between">
+        
+        <!-- Bet Slip Header -->
+        <div class="p-5 border-b border-pitch-800 bg-pitch-950">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-volt"></span>
+              <h3 class="font-display font-black text-white text-lg uppercase tracking-tight italic">
+                OFFICIAL ISA BET SLIP
+              </h3>
+            </div>
+            <button onclick="closeTradeDrawer()" class="p-1 rounded text-slate-400 hover:text-white hover:bg-pitch-800 transition">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <p class="text-[11px] font-mono text-slate-400 mt-0.5">SLIP ID: <span id="slip-ref-code" class="text-volt font-bold">#IS-2026-LIVE</span></p>
+
+          <!-- Selected Market Card -->
+          <div class="mt-3.5 p-3 rounded bg-pitch-850 border border-pitch-750 flex items-start gap-3">
+            <div id="drawer-market-icon" class="w-10 h-10 rounded bg-pitch-800 border border-pitch-700 shrink-0 flex items-center justify-center text-xl">
+              ⚽
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-1">
+                <span id="drawer-market-category" class="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400">Campus</span>
+                <span id="drawer-market-end" class="text-[10px] text-slate-500 font-medium">May 18</span>
+              </div>
+              <h4 id="drawer-market-title" class="text-xs font-bold text-white leading-snug line-clamp-2 mt-0.5">Market title</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bet Slip Body -->
+        <div class="p-5 flex-1 overflow-y-auto space-y-5">
+          
+          <!-- Outcome Selection Buttons (YES / NO with European Odds) -->
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-display font-bold uppercase tracking-wider text-slate-400">Select Outcome & European Odds</label>
+            <div class="grid grid-cols-2 gap-2 bg-pitch-950 p-1.5 rounded border border-pitch-800">
+              <button 
+                id="drawer-outcome-yes" 
+                onclick="selectDrawerOutcome('YES')" 
+                class="py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition"
+              >
+                <span id="drawer-outcome-yes-label" class="leading-none">Yes</span>
+                <span id="drawer-yes-odds" class="font-teko text-2xl font-black leading-none">1.47</span>
+              </button>
+              <button 
+                id="drawer-outcome-no" 
+                onclick="selectDrawerOutcome('NO')" 
+                class="py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition"
+              >
+                <span id="drawer-outcome-no-label" class="leading-none">No</span>
+                <span id="drawer-no-odds" class="font-teko text-2xl font-black leading-none">3.12</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stake Input -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label for="bet-amount" class="text-slate-300 font-display font-bold uppercase tracking-wider">Stake Amount (Squid)</label>
+              <span class="text-slate-400 text-xs">Available: <strong id="drawer-available-balance" class="text-volt font-mono">1,000 🦑</strong></span>
+            </div>
+
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-base select-none">🦑</span>
+              <input 
+                type="number" 
+                id="bet-amount" 
+                value="50" 
+                min="1" 
+                step="1"
+                oninput="calculateTradeSummary()"
+                class="w-full pl-10 pr-16 py-2.5 bg-pitch-950 border-2 border-pitch-750 rounded text-xl font-teko font-bold text-white focus:outline-none focus:border-volt transition"
+              >
+              <button onclick="setMaxBet()" class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-display font-black uppercase text-volt bg-volt/10 hover:bg-volt/20 px-2 py-1 rounded border border-volt/30 transition">
+                MAX
+              </button>
+            </div>
+
+            <!-- Quick Stake Preset Buttons -->
+            <div class="grid grid-cols-4 gap-1.5 pt-1">
+              <button onclick="setBetChip(10)" class="py-1.5 bg-pitch-950 hover:bg-pitch-800 border border-pitch-750 rounded font-display font-bold text-xs text-slate-300 transition">+10 🦑</button>
+              <button onclick="setBetChip(25)" class="py-1.5 bg-pitch-950 hover:bg-pitch-800 border border-pitch-750 rounded font-display font-bold text-xs text-slate-300 transition">+25 🦑</button>
+              <button onclick="setBetChip(50)" class="py-1.5 bg-pitch-950 hover:bg-pitch-800 border border-pitch-750 rounded font-display font-bold text-xs text-slate-300 transition">+50 🦑</button>
+              <button onclick="setBetChip(100)" class="py-1.5 bg-pitch-950 hover:bg-pitch-800 border border-pitch-750 rounded font-display font-bold text-xs text-slate-300 transition">+100 🦑</button>
+            </div>
+          </div>
+
+          <!-- Perforated Bet Slip Calculation Table -->
+          <div class="p-4 rounded-lg bg-pitch-950 border border-pitch-800 space-y-2.5 text-xs relative">
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="font-display uppercase tracking-wider font-semibold">Locked European Odds</span>
+              <span id="summary-decimal-odds" class="font-teko text-xl font-bold text-white leading-none">1.47</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="font-display uppercase tracking-wider font-semibold">Implied Probability</span>
+              <span id="summary-implied-prob" class="font-mono text-slate-300 font-semibold">68%</span>
+            </div>
+
+            <div class="ticket-dashed-line my-2"></div>
+
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="font-display uppercase tracking-wider font-bold">Total Potential Payout</span>
+              <span id="summary-potential-payout" class="font-teko text-2xl font-bold text-volt leading-none">73.50 🦑</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="font-display uppercase tracking-wider font-semibold">Estimated Net Profit</span>
+              <span id="summary-potential-profit" class="text-volt font-bold font-mono">+23.50 🦑 (+47.1%)</span>
+            </div>
+          </div>
+
+          <!-- Sportsbook Settlement Rules Notice -->
+          <div class="text-[11px] text-slate-400 flex items-start gap-2 bg-pitch-850 p-2.5 rounded border border-pitch-800">
+            <i data-lucide="info" class="w-4 h-4 shrink-0 text-volt mt-0.5"></i>
+            <span>Upon match resolution, winning bets are credited directly to your ISA wallet according to the locked European decimal odds.</span>
+          </div>
+
+        </div>
+
+        <!-- Drawer Footer (Submit Bet Button) -->
+        <div class="p-5 border-t border-pitch-800 bg-pitch-950">
+          <button 
+            id="btn-submit-order"
+            onclick="executeTrade()" 
+            class="w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider text-pitch-950 shadow-xl transition flex items-center justify-center gap-2 bg-volt hover:bg-volt-400"
+          >
+            <span>CONFIRM BET (50 SQUID)</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PORTFOLIO / MY BETS MODAL ================= -->
+  <div id="positions-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-pitch-900 border-2 border-pitch-700 rounded-xl max-w-xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      
+      <div class="p-5 border-b border-pitch-800 flex items-center justify-between bg-pitch-950">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded bg-volt/20 text-volt flex items-center justify-center">
+            <i data-lucide="ticket" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-black text-white text-base uppercase tracking-tight">MY BETS & SPORTS PORTFOLIO</h3>
+            <p class="text-xs text-slate-400">Active and pending prediction slips on IsaMarket</p>
+          </div>
+        </div>
+        <button onclick="closePositionsModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-pitch-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- Balance Overview -->
+        <div class="grid grid-cols-3 gap-3 bg-pitch-950 p-3.5 rounded border border-pitch-800 text-center">
+          <div>
+            <p class="text-[10px] uppercase font-display font-bold tracking-wider text-slate-400">Available Bankroll</p>
+            <p id="portfolio-free-squid" class="font-teko text-2xl font-bold text-white leading-none mt-0.5">1,000 🦑</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase font-display font-bold tracking-wider text-slate-400">Active In-Play Stake</p>
+            <p id="portfolio-invested-squid" class="font-teko text-2xl font-bold text-squid leading-none mt-0.5">0 🦑</p>
+          </div>
+          <div>
+            <p class="text-[10px] uppercase font-display font-bold tracking-wider text-slate-400">Max Potential Payout</p>
+            <p id="portfolio-max-payout" class="font-teko text-2xl font-bold text-volt leading-none mt-0.5">0 🦑</p>
+          </div>
+        </div>
+
+        <h4 class="text-xs font-display font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <span>Active Bet Slips</span>
+        </h4>
+        
+        <div id="positions-list" class="space-y-2.5">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-pitch-800 bg-pitch-950 flex justify-end">
+        <button onclick="closePositionsModal()" class="px-4 py-2 bg-pitch-800 hover:bg-pitch-750 text-slate-200 text-xs font-display font-bold uppercase tracking-wider rounded transition">
+          Close Slip View
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SQUID BANKROLL FAUCET MODAL ================= -->
+  <div id="faucet-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-pitch-900 border-2 border-pitch-700 rounded-xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative">
+      <button onclick="closeFaucetModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="w-16 h-16 rounded-xl bg-volt/15 border-2 border-volt/40 text-volt mx-auto flex items-center justify-center text-3xl shadow-inner">
+        ⚡
+      </div>
+
+      <div class="space-y-1">
+        <h3 class="font-display font-black text-white text-xl uppercase tracking-tight">TRAINING BANKROLL FAUCET</h3>
+        <p class="text-xs text-slate-400">
+          Recharge your simulated Squid sports bankroll anytime to practice odds and sports betting!
+        </p>
+      </div>
+
+      <div class="bg-pitch-950 p-4 rounded border border-pitch-800">
+        <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold">Instant Student Grant</span>
+        <div class="font-teko text-4xl font-black text-volt mt-0.5 leading-none">+250 SQUID</div>
+      </div>
+
+      <button 
+        onclick="claimFaucetSquid()" 
+        class="w-full py-3 bg-volt hover:bg-volt-400 text-pitch-950 font-display font-black text-sm uppercase tracking-wider rounded shadow-lg transition flex items-center justify-center gap-2"
+      >
+        <i data-lucide="zap" class="w-4 h-4"></i>
+        <span>Claim Free Squid Bankroll</span>
+      </button>
+
+      <p class="text-[10px] text-slate-500 font-medium">Classroom play money • Powered by ISA Lille BDS</p>
+    </div>
+  </div>
+
+  <!-- ================= LEAGUE CHAMPIONSHIP STANDINGS MODAL ================= -->
+  <div id="leaderboard-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-pitch-900 border-2 border-pitch-700 rounded-xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl">
+      
+      <div class="p-5 border-b border-pitch-800 flex items-center justify-between bg-pitch-950">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded bg-trophy/20 text-trophy flex items-center justify-center">
+            <i data-lucide="trophy" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-black text-white text-base uppercase tracking-tight">ISA CHAMPIONSHIP STANDINGS</h3>
+            <p class="text-xs text-slate-400">Top Forecasters & Squid Bankrolls • Promo 2026</p>
+          </div>
+        </div>
+        <button onclick="closeLeaderboardModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-pitch-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex-1 space-y-2.5" id="leaderboard-list">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="p-4 border-t border-pitch-800 bg-pitch-950 text-center">
+        <p class="text-xs font-display font-bold uppercase tracking-wider text-trophy">Semester prizes awarded to top 3 by ISA BDS! 🏅</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= EUROPEAN ODDS & HOW IT WORKS MODAL ================= -->
+  <div id="rules-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-pitch-900 border-2 border-pitch-700 rounded-xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl">
+      
+      <div class="p-5 border-b border-pitch-800 flex items-center justify-between bg-pitch-950">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded bg-volt/20 text-volt flex items-center justify-center">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-black text-white text-base uppercase tracking-tight">HOW EUROPEAN ODDS WORK</h3>
+            <p class="text-xs text-slate-400">Educational guide for sport administration students</p>
+          </div>
+        </div>
+        <button onclick="closeRulesModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-pitch-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex-1 space-y-4 text-xs text-slate-300 leading-relaxed">
+        
+        <div class="p-3 bg-pitch-950 rounded border border-pitch-800 space-y-1.5">
+          <h4 class="font-display font-extrabold text-white text-sm uppercase tracking-wider text-volt">
+            1. European Decimal Odds Explained
+          </h4>
+          <p>
+            In European sports betting, the odds represent the <strong>total payout multiplier</strong> for every 1 unit staked.
+          </p>
+          <div class="p-2 bg-pitch-900 rounded font-mono text-slate-200 text-[11px] my-1">
+            Total Return = Stake × Decimal Odds<br>
+            Net Profit = (Stake × Decimal Odds) - Stake
+          </div>
+          <p>
+            For example: A bet of <strong>100 Squid</strong> placed at odds of <strong>1.47</strong> pays out <strong>147.00 Squid</strong> (a net profit of <strong>+47.00 Squid</strong>).
+          </p>
+        </div>
+
+        <div class="p-3 bg-pitch-950 rounded border border-pitch-800 space-y-1.5">
+          <h4 class="font-display font-extrabold text-white text-sm uppercase tracking-wider text-slate-200">
+            2. Converting Probability to Decimal Odds
+          </h4>
+          <p>
+            European Decimal Odds are mathematically the reciprocal of implied market probability:
+          </p>
+          <ul class="space-y-1 text-slate-400 font-mono text-[11px] pl-1">
+            <li>• 68% probability = 1 / 0.68 = <strong class="text-white">1.47 odds</strong></li>
+            <li>• 50% probability = 1 / 0.50 = <strong class="text-white">2.00 odds</strong></li>
+            <li>• 32% probability = 1 / 0.32 = <strong class="text-white">3.12 odds</strong></li>
+          </ul>
+        </div>
+
+        <div class="p-3 bg-pitch-950 rounded border border-pitch-800 space-y-1.5">
+          <h4 class="font-display font-extrabold text-white text-sm uppercase tracking-wider text-slate-200">
+            3. Educational & Virtual Currency
+          </h4>
+          <p>
+            IsaMarket is created specifically for hands-on class activities within the <strong>International Sport Administration</strong> program at <strong>Université de Lille</strong>. The official currency is <strong>🦑 Squid</strong>.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t border-pitch-800 bg-pitch-950 flex justify-end">
+        <button onclick="closeRulesModal()" class="px-4 py-2 bg-volt text-pitch-950 text-xs font-display font-black uppercase tracking-wider rounded transition hover:bg-volt-400">
+          Understood!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FLOATING TOAST NOTIFICATION ================= -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-pitch-900 border-2 border-volt text-white px-4 py-3 rounded-lg shadow-2xl">
+    <div class="w-7 h-7 rounded bg-volt/20 text-volt flex items-center justify-center shrink-0">
+      <i data-lucide="check" class="w-4 h-4"></i>
+    </div>
+    <div>
+      <h5 id="toast-title" class="text-xs font-display font-black uppercase tracking-wider text-white">Success</h5>
+      <p id="toast-message" class="text-[11px] text-slate-300 font-medium">Bet successfully confirmed</p>
+    </div>
+  </div>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <script>
+    // Initial Market Data with European Decimal Odds & Athletic Props
+    const INITIAL_MARKETS = [
+      {
+        id: 1,
+        category: 'isa',
+        categoryName: 'Classroom',
+        icon: '⏱️',
+        title: 'How many minutes before William talks about volunteering?',
+        description: 'Resolves to "< 15 mins" if William mentions volunteering within the first 15 minutes of lecture, or "≥ 15 mins" if later or never.',
+        yesProb: 0.68,
+        noProb: 0.32,
+        yesLabel: '< 15 mins',
+        noLabel: '≥ 15 mins',
+        volume: 56800,
+        endDate: 'Today\'s Lecture',
+        image: 'assets/logo.png',
+        featured: true,
+        tag: 'LIVE PROP'
+      },
+      {
+        id: 2,
+        category: 'football',
+        categoryName: 'Football',
+        icon: '⚽',
+        title: 'Will LOSC Lille finish in Ligue 1 Top 3 this season?',
+        description: 'Resolves to Yes if LOSC Lille qualifies directly for the UEFA Champions League group stage.',
+        yesProb: 0.58,
+        noProb: 0.42,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 34120,
+        endDate: 'May 18, 2026',
+        image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+        tag: 'LIGUE 1'
+      },
+      {
+        id: 3,
+        category: 'isa',
+        categoryName: 'ISA Campus',
+        icon: '🎟️',
+        title: 'Will the ISA Annual Sports Gala tickets sell out within 24 hours?',
+        description: 'BDS Gala ticket sales opening prediction for master and bachelor students.',
+        yesProb: 0.84,
+        noProb: 0.16,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 18900,
+        endDate: 'Apr 10, 2026',
+        image: 'assets/logo.png',
+        tag: 'BDS GALA'
+      },
+      {
+        id: 4,
+        category: 'olympics',
+        categoryName: 'Global Sports',
+        icon: '🏆',
+        title: 'Will France reach the Final of the 2026 FIFA World Cup?',
+        description: 'Resolves to Yes if the French National Team plays the 2026 World Cup Final in MetLife Stadium.',
+        yesProb: 0.41,
+        noProb: 0.59,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 76500,
+        endDate: 'Jul 19, 2026',
+        image: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=400&q=80',
+        tag: 'WORLD CUP'
+      },
+      {
+        id: 5,
+        category: 'basketball',
+        categoryName: 'Basketball',
+        icon: '🏀',
+        title: 'Will the ISA 3x3 Basketball Team make the Regional Final Four?',
+        description: 'FFSU Regional Championship in Villeneuve d\'Ascq.',
+        yesProb: 0.63,
+        noProb: 0.37,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 12400,
+        endDate: 'Apr 30, 2026',
+        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=400&q=80',
+        tag: 'FFSU 3X3'
+      },
+      {
+        id: 6,
+        category: 'campus',
+        categoryName: 'Student Life',
+        icon: '🍻',
+        title: 'Will the BDS organise an ISA Ski Trip to Val Thorens in 2027?',
+        description: 'Annual winter semester sports retreat proposition by the Bureau des Sports.',
+        yesProb: 0.89,
+        noProb: 0.11,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 9800,
+        endDate: 'Dec 15, 2026',
+        image: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?auto=format&fit=crop&w=400&q=80',
+        tag: 'SKI RETREAT'
+      },
+      {
+        id: 7,
+        category: 'isa',
+        categoryName: 'ISA Campus',
+        icon: '📊',
+        title: 'Will the class average in Sport Economics & Finance be above 14/20?',
+        description: 'Semester exam graded across all ISA Master 1 students.',
+        yesProb: 0.47,
+        noProb: 0.53,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 21300,
+        endDate: 'Jun 12, 2026',
+        image: 'assets/logo.png',
+        tag: 'EXAM RESULTS'
+      },
+      {
+        id: 8,
+        category: 'football',
+        categoryName: 'Football',
+        icon: '👑',
+        title: 'Will Kylian Mbappé win the 2026 Ballon d\'Or?',
+        description: 'Resolves to Yes if France Football awards the Ballon d\'Or to Kylian Mbappé.',
+        yesProb: 0.52,
+        noProb: 0.48,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 64200,
+        endDate: 'Oct 30, 2026',
+        image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=400&q=80',
+        tag: 'BALLON D\'OR'
+      },
+      {
+        id: 9,
+        category: 'olympics',
+        categoryName: 'Global Sports',
+        icon: '🎾',
+        title: 'Will Carlos Alcaraz win the 2026 French Open (Roland-Garros)?',
+        description: 'Men\'s singles tournament at Stade Roland Garros, Paris.',
+        yesProb: 0.65,
+        noProb: 0.35,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 28900,
+        endDate: 'Jun 07, 2026',
+        image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=400&q=80',
+        tag: 'ROLAND-GARROS'
+      },
+      {
+        id: 10,
+        category: 'isa',
+        categoryName: 'ISA Campus',
+        icon: '🎓',
+        title: 'Will ISA win the 2026 Lille Inter-University Sports Championship?',
+        description: 'Resolves to Yes if ISA finishes 1st overall in the Université de Lille tournament.',
+        yesProb: 0.72,
+        noProb: 0.28,
+        yesLabel: 'Yes',
+        noLabel: 'No',
+        volume: 48250,
+        endDate: 'May 24, 2026',
+        image: 'assets/logo.png',
+        tag: 'UNIV DERBY'
+      }
+    ];
+
+    // Championship Standings Mock Data
+    const MOCK_LEADERBOARD = [
+      { rank: 1, name: 'Thomas Bernard', promo: 'ISA M2', balance: 14820, streak: '4W 🔥', form: 'W W W W' },
+      { rank: 2, name: 'Camille Renault', promo: 'ISA M1', balance: 11450, streak: '2W 🔥', form: 'W L W W' },
+      { rank: 3, name: 'Lucas Dubois', promo: 'ISA L3', balance: 9380, streak: '3W 🔥', form: 'W W W L' },
+      { rank: 4, name: 'Emma Lefebvre', promo: 'ISA M2', balance: 7240, streak: '1W', form: 'L W W L' },
+      { rank: 5, name: 'Alexandre Petit', promo: 'ISA M1', balance: 5120, streak: '2W 🔥', form: 'W W L W' },
+      { rank: 6, name: 'Inès Martin', promo: 'ISA L3', balance: 3400, streak: '1L', form: 'W L L W' },
+      { rank: 7, name: 'Maxime Leroy', promo: 'ISA M1', balance: 2150, streak: '1W', form: 'L L W W' },
+      { rank: 8, name: 'Jules Moreau (You)', promo: 'ISA M1', balance: 1000, streak: 'Ready', form: '- - - -', isUser: true },
+      { rank: 9, name: 'Sophie Laurent', promo: 'ISA M2', balance: 850, streak: '2L', form: 'L L W L' },
+      { rank: 10, name: 'Antoine Roux', promo: 'ISA L3', balance: 620, streak: '3L', form: 'L L L W' },
+    ];
+
+    // Helper: Convert probability (0-1) to European Decimal Odds
+    function toDecimalOdds(prob) {
+      if (!prob || prob <= 0) return '1.01';
+      return (1 / prob).toFixed(2);
+    }
+
+    // App State
+    let markets = [...INITIAL_MARKETS];
+    let activeCategory = 'all';
+    let searchQuery = '';
+    let sortMethod = 'volume';
+    let userBalance = 1000;
+    let userPositions = [];
+
+    // Current bet drawer state
+    let currentDrawerMarket = null;
+    let currentDrawerOutcome = 'YES';
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderMarkets();
+      renderPositionsBadge();
+      lucide.createIcons();
+    });
+
+    // Local Storage helpers
+    function saveState() {
+      localStorage.setItem('isamarket_balance', userBalance.toString());
+      localStorage.setItem('isamarket_positions', JSON.stringify(userPositions));
+    }
+
+    function loadState() {
+      const savedBalance = localStorage.getItem('isamarket_balance');
+      if (savedBalance !== null) {
+        userBalance = parseInt(savedBalance, 10);
+      }
+      const savedPositions = localStorage.getItem('isamarket_positions');
+      if (savedPositions) {
+        try {
+          userPositions = JSON.parse(savedPositions);
+        } catch (e) {
+          userPositions = [];
+        }
+      }
+      updateBalanceUI();
+    }
+
+    function updateBalanceUI() {
+      const el = document.getElementById('user-balance');
+      if (el) el.textContent = userBalance.toLocaleString();
+      
+      const drawerBal = document.getElementById('drawer-available-balance');
+      if (drawerBal) drawerBal.textContent = `${userBalance.toLocaleString()} 🦑`;
+      
+      const portFree = document.getElementById('portfolio-free-squid');
+      if (portFree) portFree.textContent = `${userBalance.toLocaleString()} 🦑`;
+    }
+
+    // Category filter
+    function filterCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.classList.remove('bg-volt', 'text-pitch-950', 'active');
+        btn.classList.add('bg-pitch-800', 'text-slate-300');
+      });
+      
+      const activeBtn = event?.target?.closest('button');
+      if (activeBtn) {
+        activeBtn.classList.add('bg-volt', 'text-pitch-950', 'active');
+        activeBtn.classList.remove('bg-pitch-800', 'text-slate-300');
+      }
+      
+      renderMarkets();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.toLowerCase().trim();
+      renderMarkets();
+    }
+
+    function handleSort(val) {
+      sortMethod = val;
+      renderMarkets();
+    }
+
+    function resetFilters() {
+      activeCategory = 'all';
+      searchQuery = '';
+      const input = document.getElementById('searchInput');
+      if (input) input.value = '';
+      renderMarkets();
+    }
+
+    // Render Sports Markets Grid
+    function renderMarkets() {
+      const container = document.getElementById('markets-grid');
+      const emptyState = document.getElementById('empty-state');
+      if (!container) return;
+
+      let filtered = markets.filter(m => {
+        const matchesCat = (activeCategory === 'all') || (m.category === activeCategory);
+        const matchesSearch = !searchQuery || 
+          m.title.toLowerCase().includes(searchQuery) || 
+          m.categoryName.toLowerCase().includes(searchQuery) ||
+          m.description.toLowerCase().includes(searchQuery);
+        return matchesCat && matchesSearch;
+      });
+
+      // Sort with European Odds logic
+      if (sortMethod === 'volume') {
+        filtered.sort((a, b) => b.volume - a.volume);
+      } else if (sortMethod === 'odds') {
+        // Highest underdog decimal odds
+        filtered.sort((a, b) => {
+          const maxOddsA = Math.max(1 / a.yesProb, 1 / a.noProb);
+          const maxOddsB = Math.max(1 / b.yesProb, 1 / b.noProb);
+          return maxOddsB - maxOddsA;
+        });
+      } else if (sortMethod === 'chance') {
+        filtered.sort((a, b) => b.yesProb - a.yesProb);
+      } else if (sortMethod === 'newest') {
+        filtered.sort((a, b) => b.id - a.id);
+      }
+
+      document.getElementById('market-count-badge').textContent = `${filtered.length} MARKETS`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      container.innerHTML = filtered.map(m => {
+        const yesOdds = toDecimalOdds(m.yesProb);
+        const noOdds = toDecimalOdds(m.noProb);
+        const yesPercent = Math.round(m.yesProb * 100);
+        const noPercent = Math.round(m.noProb * 100);
+        const yesLabel = m.yesLabel || 'Yes';
+        const noLabel = m.noLabel || 'No';
+
+        return `
+          <div class="sport-card bg-pitch-900 border-2 border-pitch-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+            
+            <!-- Card Header & Match Tag -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="inline-flex items-center gap-1.5 font-display font-black text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-pitch-800 text-volt border border-pitch-700">
+                  <span>${m.icon}</span> ${m.tag || m.categoryName}
+                </span>
+                <span class="flex items-center gap-1 text-[11px] font-mono text-slate-400">
+                  <i data-lucide="clock" class="w-3 h-3 text-slate-500"></i> ${m.endDate}
+                </span>
+              </div>
+
+              <!-- Title & Thumbnail -->
+              <div class="flex items-start gap-3">
+                <div class="w-12 h-12 rounded bg-pitch-850 border border-pitch-700 p-0.5 shrink-0 flex items-center justify-center overflow-hidden shadow">
+                  <img src="${m.image}" alt="${m.title}" class="w-full h-full object-cover rounded" onerror="this.src='assets/logo.png'">
+                </div>
+                <h3 class="font-display font-bold text-base uppercase tracking-tight text-white leading-snug hover:text-volt transition cursor-pointer" onclick="openBetModal(${m.id}, 'YES')">
+                  ${m.title}
+                </h3>
+              </div>
+            </div>
+
+            <!-- European Odds Display Grid -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-[11px] font-display uppercase tracking-wider text-slate-400">
+                <span class="text-volt font-bold">${yesLabel} (${yesPercent}%)</span>
+                <span class="text-squid font-bold">${noLabel} (${noPercent}%)</span>
+              </div>
+              
+              <!-- Stadium Gauge Bar -->
+              <div class="h-2 w-full bg-pitch-950 rounded-sm overflow-hidden flex border border-pitch-800">
+                <div class="bg-volt h-full transition-all duration-300" style="width: ${yesPercent}%;"></div>
+                <div class="bg-squid h-full transition-all duration-300" style="width: ${noPercent}%;"></div>
+              </div>
+            </div>
+
+            <!-- Sportsbook European Odds Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button 
+                onclick="openBetModal(${m.id}, 'YES')"
+                class="flex items-center justify-between px-3 py-2.5 rounded bg-volt/10 hover:bg-volt/25 border-2 border-volt/40 hover:border-volt text-volt font-display uppercase tracking-wider text-xs font-black transition group"
+              >
+                <span>${yesLabel}</span>
+                <span class="font-teko text-xl font-black text-white group-hover:text-volt transition leading-none">${yesOdds}</span>
+              </button>
+
+              <button 
+                onclick="openBetModal(${m.id}, 'NO')"
+                class="flex items-center justify-between px-3 py-2.5 rounded bg-squid/10 hover:bg-squid/25 border-2 border-squid/40 hover:border-squid text-squid font-display uppercase tracking-wider text-xs font-black transition group"
+              >
+                <span>${noLabel}</span>
+                <span class="font-teko text-xl font-black text-white group-hover:text-squid transition leading-none">${noOdds}</span>
+              </button>
+            </div>
+
+            <!-- Footer metrics -->
+            <div class="flex items-center justify-between pt-2 border-t border-pitch-800 text-[11px] text-slate-400 font-mono">
+              <span class="flex items-center gap-1">
+                <span>🦑</span> <strong class="text-white">${m.volume.toLocaleString()}</strong> SQUID STAKED
+              </span>
+              <div class="flex items-center gap-2">
+                <button onclick="openBetModal(${m.id}, 'YES')" class="hover:text-volt transition" title="Open Bet Slip">
+                  <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="showToast('Odds Link Copied', 'Proposition link copied to clipboard!')" class="hover:text-volt transition" title="Share Match">
+                  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // ================= OFFICIAL BET SLIP LOGIC =================
+    function openBetModal(marketId, outcome = 'YES') {
+      const market = markets.find(m => m.id === marketId);
+      if (!market) return;
+
+      currentDrawerMarket = market;
+      currentDrawerOutcome = outcome;
+
+      // Unique ticket ref code
+      document.getElementById('slip-ref-code').textContent = `#IS-${market.id}${Math.floor(100 + Math.random() * 900)}`;
+
+      document.getElementById('drawer-market-title').textContent = market.title;
+      document.getElementById('drawer-market-category').textContent = `${market.icon} ${market.tag || market.categoryName}`;
+      document.getElementById('drawer-market-end').textContent = market.endDate;
+      
+      const yesOdds = toDecimalOdds(market.yesProb);
+      const noOdds = toDecimalOdds(market.noProb);
+
+      document.getElementById('drawer-yes-odds').textContent = yesOdds;
+      document.getElementById('drawer-no-odds').textContent = noOdds;
+
+      const yesLabelEl = document.getElementById('drawer-outcome-yes-label');
+      const noLabelEl = document.getElementById('drawer-outcome-no-label');
+      if (yesLabelEl) yesLabelEl.textContent = market.yesLabel || 'Yes';
+      if (noLabelEl) noLabelEl.textContent = market.noLabel || 'No';
+
+      selectDrawerOutcome(outcome);
+      calculateTradeSummary();
+
+      document.getElementById('trade-drawer').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeTradeDrawer() {
+      document.getElementById('trade-drawer').classList.add('hidden');
+    }
+
+    function selectDrawerOutcome(outcome) {
+      currentDrawerOutcome = outcome;
+      const yesBtn = document.getElementById('drawer-outcome-yes');
+      const noBtn = document.getElementById('drawer-outcome-no');
+      const submitBtn = document.getElementById('btn-submit-order');
+
+      if (outcome === 'YES') {
+        yesBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-black flex flex-col items-center justify-center gap-0.5 transition bg-volt text-pitch-950 shadow-md border-2 border-volt';
+        noBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition bg-pitch-900 text-slate-400 hover:text-white border-2 border-transparent';
+        submitBtn.className = 'w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider text-pitch-950 shadow-xl transition flex items-center justify-center gap-2 bg-volt hover:bg-volt-400';
+      } else {
+        noBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-black flex flex-col items-center justify-center gap-0.5 transition bg-squid text-white shadow-md border-2 border-squid';
+        yesBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition bg-pitch-900 text-slate-400 hover:text-white border-2 border-transparent';
+        submitBtn.className = 'w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider text-white shadow-xl transition flex items-center justify-center gap-2 bg-squid hover:bg-squid-600';
+      }
+
+      calculateTradeSummary();
+    }
+
+    function setBetChip(val) {
+      document.getElementById('bet-amount').value = val;
+      calculateTradeSummary();
+    }
+
+    function setMaxBet() {
+      document.getElementById('bet-amount').value = Math.max(1, userBalance);
+      calculateTradeSummary();
+    }
+
+    function calculateTradeSummary() {
+      if (!currentDrawerMarket) return;
+      
+      const amountInput = document.getElementById('bet-amount');
+      let stake = parseFloat(amountInput.value) || 0;
+      if (stake < 0) stake = 0;
+
+      const prob = currentDrawerOutcome === 'YES' ? currentDrawerMarket.yesProb : currentDrawerMarket.noProb;
+      const decimalOdds = parseFloat(toDecimalOdds(prob));
+      
+      // Sportsbook European Odds calculation:
+      const totalPayout = stake * decimalOdds;
+      const netProfit = totalPayout - stake;
+      const roi = stake > 0 ? ((decimalOdds - 1) * 100) : 0;
+
+      document.getElementById('summary-decimal-odds').textContent = decimalOdds.toFixed(2);
+      document.getElementById('summary-implied-prob').textContent = `${Math.round(prob * 100)}%`;
+      document.getElementById('summary-potential-payout').textContent = `${totalPayout.toFixed(2)} 🦑`;
+      document.getElementById('summary-potential-profit').textContent = `+${netProfit.toFixed(2)} 🦑 (+${roi.toFixed(1)}%)`;
+      
+      const submitBtn = document.getElementById('btn-submit-order');
+      if (stake > userBalance) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        submitBtn.innerHTML = `<span>Insufficient Bankroll (Have ${userBalance} 🦑)</span>`;
+      } else if (stake <= 0) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        submitBtn.innerHTML = `<span>Enter stake amount</span>`;
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        const outcomeLabel = currentDrawerOutcome === 'YES' ? (currentDrawerMarket.yesLabel || 'Yes') : (currentDrawerMarket.noLabel || 'No');
+        submitBtn.innerHTML = `<span>LOCK IN ${outcomeLabel} @ ${decimalOdds.toFixed(2)} (${stake} 🦑)</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+        lucide.createIcons();
+      }
+    }
+
+    function executeTrade() {
+      if (!currentDrawerMarket) return;
+      
+      const stake = parseFloat(document.getElementById('bet-amount').value) || 0;
+      if (stake <= 0 || stake > userBalance) return;
+
+      const prob = currentDrawerOutcome === 'YES' ? currentDrawerMarket.yesProb : currentDrawerMarket.noProb;
+      const decimalOdds = parseFloat(toDecimalOdds(prob));
+      const totalPayout = stake * decimalOdds;
+      const netProfit = totalPayout - stake;
+      const outcomeLabel = currentDrawerOutcome === 'YES' ? (currentDrawerMarket.yesLabel || 'Yes') : (currentDrawerMarket.noLabel || 'No');
+
+      // Deduct bankroll
+      userBalance -= stake;
+      
+      // Update market volume
+      currentDrawerMarket.volume += stake;
+
+      // Add to user active bets
+      userPositions.unshift({
+        id: Date.now(),
+        marketId: currentDrawerMarket.id,
+        marketTitle: currentDrawerMarket.title,
+        outcome: outcomeLabel,
+        stake: stake,
+        decimalOdds: decimalOdds,
+        payout: totalPayout,
+        netProfit: netProfit,
+        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+
+      saveState();
+      updateBalanceUI();
+      renderMarkets();
+      renderPositionsBadge();
+
+      // Confetti feedback
+      confetti({
+        particleCount: 50,
+        spread: 65,
+        origin: { y: 0.8 },
+        colors: ['#00f59b', '#ff2a6d', '#ffffff']
+      });
+
+      closeTradeDrawer();
+      showToast('🎉 Bet Confirmed!', `Placed ${stake} 🦑 on ${outcomeLabel} @ ${decimalOdds.toFixed(2)} (Payout: ${totalPayout.toFixed(1)} 🦑)`);
+    }
+
+    // ================= POSITIONS / BETS MODAL =================
+    function openPositionsModal() {
+      renderPositionsList();
+      document.getElementById('positions-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closePositionsModal() {
+      document.getElementById('positions-modal').classList.add('hidden');
+    }
+
+    function renderPositionsBadge() {
+      const badge = document.getElementById('nav-positions-count');
+      if (!badge) return;
+      if (userPositions.length > 0) {
+        badge.textContent = userPositions.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function renderPositionsList() {
+      const container = document.getElementById('positions-list');
+      const investedEl = document.getElementById('portfolio-invested-squid');
+      const payoutEl = document.getElementById('portfolio-max-payout');
+      if (!container) return;
+
+      let totalInvested = 0;
+      let totalMaxPayout = 0;
+
+      userPositions.forEach(p => {
+        totalInvested += p.stake;
+        totalMaxPayout += p.payout;
+      });
+
+      if (investedEl) investedEl.textContent = `${totalInvested.toLocaleString()} 🦑`;
+      if (payoutEl) payoutEl.textContent = `${totalMaxPayout.toFixed(0)} 🦑`;
+
+      if (userPositions.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center text-slate-500 space-y-2 bg-pitch-950 rounded border border-pitch-800">
+            <i data-lucide="ticket" class="w-8 h-8 mx-auto text-slate-600"></i>
+            <p class="text-xs font-medium">No active bet slips yet.</p>
+            <button onclick="closePositionsModal()" class="text-xs font-display font-bold uppercase tracking-wider text-volt hover:underline">Explore matches and lock in a bet →</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = userPositions.map(p => {
+        return `
+          <div class="p-3.5 bg-pitch-950 border border-pitch-800 rounded-lg space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <h5 class="text-xs font-bold text-white leading-snug">${p.marketTitle}</h5>
+              <span class="shrink-0 px-2 py-0.5 rounded text-[10px] font-display font-black uppercase tracking-wider bg-volt/20 text-volt border border-volt/30">
+                ${p.outcome} @ ${p.decimalOdds.toFixed(2)}
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-pitch-800 font-mono">
+              <span>Stake: <strong class="text-white">${p.stake} 🦑</strong></span>
+              <span class="text-volt font-bold">Max Return: ${p.payout.toFixed(1)} 🦑 (+${p.netProfit.toFixed(1)} 🦑)</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================= FAUCET MODAL =================
+    function openFaucetModal() {
+      document.getElementById('faucet-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeFaucetModal() {
+      document.getElementById('faucet-modal').classList.add('hidden');
+    }
+
+    function claimFaucetSquid() {
+      userBalance += 250;
+      saveState();
+      updateBalanceUI();
+      closeFaucetModal();
+
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00f59b', '#ff2a6d', '#ffb703']
+      });
+
+      showToast('⚡ Bankroll Credited!', '+250 Squid added to your ISA wallet');
+    }
+
+    // ================= LEAGUE CHAMPIONSHIP MODAL =================
+    function openLeaderboardModal() {
+      const container = document.getElementById('leaderboard-list');
+      if (container) {
+        const updated = MOCK_LEADERBOARD.map(item => {
+          if (item.isUser) {
+            return { ...item, balance: userBalance };
+          }
+          return item;
+        }).sort((a, b) => b.balance - a.balance);
+
+        container.innerHTML = updated.map((u, idx) => `
+          <div class="flex items-center justify-between p-3 rounded-lg ${u.isUser ? 'bg-volt/15 border-2 border-volt' : 'bg-pitch-950 border border-pitch-800'}">
+            <div class="flex items-center gap-3">
+              <span class="w-6 text-center font-teko text-xl font-bold ${idx < 3 ? 'text-trophy' : 'text-slate-500'}">
+                ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+              </span>
+              <div>
+                <p class="text-xs font-bold ${u.isUser ? 'text-volt' : 'text-white'}">${u.name}</p>
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                  <span>${u.promo}</span>
+                  <span>•</span>
+                  <span class="text-volt font-bold">${u.streak}</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-teko text-xl font-bold text-white leading-none">
+                ${u.balance.toLocaleString()} <span class="text-volt text-sm">🦑</span>
+              </div>
+              <div class="text-[9px] font-mono text-slate-500 tracking-widest mt-0.5">${u.form}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('leaderboard-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeLeaderboardModal() {
+      document.getElementById('leaderboard-modal').classList.add('hidden');
+    }
+
+    // ================= HOW IT WORKS MODAL =================
+    function openRulesModal() {
+      document.getElementById('rules-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeRulesModal() {
+      document.getElementById('rules-modal').classList.add('hidden');
+    }
+
+    // ================= PROFILE DROPDOWN =================
+    function toggleProfileDropdown() {
+      const menu = document.getElementById('profileDropdown');
+      menu.classList.toggle('hidden');
+    }
+
+    window.addEventListener('click', (e) => {
+      const btn = document.getElementById('profileBtn');
+      const menu = document.getElementById('profileDropdown');
+      if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    function resetDemoState() {
+      userBalance = 1000;
+      userPositions = [];
+      saveState();
+      updateBalanceUI();
+      renderMarkets();
+      renderPositionsBadge();
+      showToast('Bankroll Reset', 'Reset bankroll back to 1,000 Squid');
+    }
+
+    // ================= TOAST SYSTEM =================
+    function showToast(title, message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-message').textContent = message;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>

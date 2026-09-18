@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Championship Standings | IsaMarket - ISA Lille</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  
+  <!-- Athletic & Performance Google Fonts: Barlow Condensed, Teko, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['"Barlow Condensed"', 'sans-serif'],
+            teko: ['Teko', 'sans-serif'],
+          },
+          colors: {
+            pitch: {
+              950: '#07080b',
+              900: '#0b0e14',
+              850: '#10141d',
+              800: '#161c28',
+              750: '#1c2433',
+              700: '#252f44',
+              600: '#34425f',
+              border: '#232c3f',
+            },
+            squid: {
+              DEFAULT: '#ff2a6d',
+              400: '#ff4d84',
+              500: '#ff2a6d',
+              600: '#e01655',
+              700: '#b80c41',
+              light: '#ffe5ec',
+            },
+            volt: {
+              DEFAULT: '#00f59b',
+              300: '#5cffbe',
+              400: '#1ef7a4',
+              500: '#00f59b',
+              600: '#00c77d',
+              bg: 'rgba(0, 245, 155, 0.12)',
+            },
+            trophy: {
+              DEFAULT: '#ffb703',
+              400: '#ffc83b',
+              500: '#ffb703',
+              600: '#e09f00',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07080b;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(255, 183, 3, 0.05) 0%, transparent 60%),
+        linear-gradient(to bottom, #07080b 0%, #0b0e14 100%);
+      background-attachment: fixed;
+    }
+
+    /* Athletic scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #07080b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #252f44;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #34425f;
+    }
+
+    /* Live sports ticker marquee */
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-track {
+      display: flex;
+      width: 200%;
+      animation: marquee 38s linear infinite;
+    }
+    .ticker-track:hover {
+      animation-play-state: paused;
+    }
+
+    /* Podium step styling */
+    .podium-gold {
+      background: linear-gradient(180deg, rgba(255, 183, 3, 0.15) 0%, rgba(16, 20, 29, 0.95) 100%);
+      border: 2px solid #ffb703;
+      box-shadow: 0 10px 30px -10px rgba(255, 183, 3, 0.3);
+    }
+    .podium-silver {
+      background: linear-gradient(180deg, rgba(203, 213, 225, 0.12) 0%, rgba(16, 20, 29, 0.95) 100%);
+      border: 2px solid #94a3b8;
+      box-shadow: 0 10px 30px -10px rgba(148, 163, 184, 0.2);
+    }
+    .podium-bronze {
+      background: linear-gradient(180deg, rgba(217, 119, 6, 0.12) 0%, rgba(16, 20, 29, 0.95) 100%);
+      border: 2px solid #d97706;
+      box-shadow: 0 10px 30px -10px rgba(217, 119, 6, 0.2);
+    }
+
+    /* Table row hover */
+    .standings-row {
+      transition: all 0.15s ease-out;
+    }
+    .standings-row:hover {
+      background-color: rgba(28, 36, 51, 0.6);
+      transform: translateX(3px);
+    }
+
+    /* Stadium grid texture */
+    .stadium-grid {
+      background-size: 32px 32px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-trophy selection:text-pitch-950">
+
+  <!-- ================= LIVE STADIUM TICKER RIBBON ================= -->
+  <div class="bg-pitch-950 border-b border-pitch-800 text-xs text-slate-300 overflow-hidden relative z-50">
+    <div class="flex items-center h-8">
+      
+      <div class="bg-trophy px-3 h-full flex items-center gap-1.5 shrink-0 z-20 shadow-md">
+        <span class="w-2 h-2 rounded-full bg-pitch-950 animate-pulse"></span>
+        <span class="font-display font-black text-pitch-950 uppercase tracking-wider text-[11px] italic">STANDINGS RADAR</span>
+      </div>
+
+      <div class="overflow-hidden whitespace-nowrap flex-1 relative">
+        <div class="ticker-track text-[11px] font-medium tracking-wide">
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-trophy uppercase">🥇 LEADER:</span>
+            <span class="text-white font-bold">Thomas Bernard (ISA M2) with 14,820 🦑</span>
+            <span class="text-volt font-bold">• 4W Streak 🔥</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-slate-300 uppercase">🥈 RUNNER-UP:</span>
+            <span class="text-white font-bold">Camille Renault (ISA M1) with 11,450 🦑</span>
+            <span class="text-trophy font-bold">• Win Rate: 72%</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-volt uppercase">⚡ BIGGEST HIT:</span>
+            <span class="text-white font-bold">Lucas Dubois hit underdogs on FFSU 3x3 @ 3.45</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-white uppercase">🏆 BDS PRIZES:</span>
+            <span class="text-slate-300">Top 3 receive LOSC VIP stadium tickets and official gear at semester end!</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <!-- LOOP DUPLICATE -->
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-trophy uppercase">🥇 LEADER:</span>
+            <span class="text-white font-bold">Thomas Bernard (ISA M2) with 14,820 🦑</span>
+            <span class="text-volt font-bold">• 4W Streak 🔥</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-slate-300 uppercase">🥈 RUNNER-UP:</span>
+            <span class="text-white font-bold">Camille Renault (ISA M1) with 11,450 🦑</span>
+            <span class="text-trophy font-bold">• Win Rate: 72%</span>
+          </span>
+          <span class="text-slate-600">•</span>
+
+          <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
+            <span class="font-display font-bold text-volt uppercase">⚡ BIGGEST HIT:</span>
+            <span class="text-white font-bold">Lucas Dubois hit underdogs on FFSU 3x3 @ 3.45</span>
+          </span>
+        </div>
+      </div>
+
+      <a href="index.html" class="hidden md:flex items-center gap-1.5 px-3.5 h-full bg-pitch-900 hover:bg-pitch-800 text-volt text-[11px] font-bold border-l border-pitch-800 transition shrink-0">
+        <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-volt"></i>
+        <span>Place Bets →</span>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ================= MAIN ATHLETIC HEADER ================= -->
+  <header class="sticky top-0 z-40 bg-pitch-950/95 backdrop-blur-md border-b border-pitch-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo & Sports Title -->
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="index.html" class="flex items-center gap-3 group">
+          <div class="relative">
+            <div class="w-10 h-10 rounded-lg bg-pitch-850 p-0.5 border-2 border-trophy group-hover:border-volt transition-colors duration-200 overflow-hidden flex items-center justify-center shadow-lg">
+              <img 
+                src="assets/logo.png" 
+                alt="ISA Lille Squid Logo" 
+                class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                onerror="this.src='public/logo.png'"
+              >
+            </div>
+            <span class="absolute -bottom-1 -right-1 w-3 h-3 bg-trophy border-2 border-pitch-950 rounded-full"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-display font-black text-2xl uppercase tracking-tighter text-white flex items-center italic">
+                ISA<span class="text-squid group-hover:text-volt transition-colors">MARKET</span>
+              </span>
+              <span class="text-[10px] font-display font-extrabold uppercase tracking-widest bg-pitch-800 text-trophy px-1.5 py-0.5 rounded border border-pitch-700">
+                CHAMPIONSHIP
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-400 tracking-wider font-semibold uppercase leading-none">
+              Univ. Lille • Sport Administration
+            </p>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center gap-1 ml-6 text-xs font-display font-bold uppercase tracking-wider">
+          <a href="index.html" class="nav-btn px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-pitch-900 transition flex items-center gap-1.5">
+            <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-slate-400"></i> Matches & Props
+          </a>
+          <a href="leaderboard.html" class="nav-btn px-3 py-1.5 rounded bg-pitch-800 text-white flex items-center gap-1.5 border border-pitch-700">
+            <i data-lucide="trophy" class="w-3.5 h-3.5 text-trophy"></i> Championship
+          </a>
+          <button onclick="openPositionsModal()" class="nav-btn px-3 py-1.5 rounded text-slate-400 hover:text-white hover:bg-pitch-900 transition flex items-center gap-1.5">
+            <i data-lucide="ticket" class="w-3.5 h-3.5 text-volt"></i> My Bets
+            <span id="nav-positions-count" class="bg-squid text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Quick Bankroll & Profile -->
+      <div class="flex items-center gap-3">
+        
+        <!-- Digital Scoreboard Bankroll Counter -->
+        <div 
+          onclick="openPositionsModal()"
+          class="flex items-center gap-2.5 bg-pitch-900 border border-pitch-750 px-3.5 py-1 rounded shadow-inner cursor-pointer hover:border-volt transition group" 
+          title="View Active Bets"
+        >
+          <div class="w-6 h-6 rounded bg-squid/20 text-squid flex items-center justify-center text-xs font-bold shrink-0">
+            🦑
+          </div>
+          <div class="flex flex-col text-left">
+            <span class="text-[9px] text-slate-400 font-display font-bold tracking-wider uppercase leading-none">Your Bankroll</span>
+            <span id="user-balance" class="font-teko text-xl font-bold text-white tracking-wide leading-none group-hover:text-volt transition">
+              1,000
+            </span>
+          </div>
+        </div>
+
+        <!-- Back to Markets CTA -->
+        <a 
+          href="index.html" 
+          class="hidden sm:inline-flex items-center gap-1.5 bg-volt hover:bg-volt-400 text-pitch-950 px-3 py-1.5 rounded text-xs font-display font-black uppercase tracking-wider transition shadow"
+        >
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>Live Matches</span>
+        </a>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+    <!-- ================= HERO HEADER ================= -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-pitch-800 pb-6">
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded text-[11px] font-display font-black uppercase tracking-wider bg-trophy/20 text-trophy border border-trophy/30">
+            SPRING SEMESTER 2026
+          </span>
+          <span class="text-xs text-slate-400 font-mono flex items-center gap-1">
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500"></i> Resolves June 20, 2026
+          </span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-display font-black uppercase tracking-tight text-white italic">
+          ISA CHAMPIONSHIP <span class="text-trophy">STANDINGS</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 max-w-xl">
+          Official ranking of students forecasting sport matches, lecture props, and campus events. Earn Squid, build win streaks, and claim the semester podium.
+        </p>
+      </div>
+
+      <!-- Quick stats badges -->
+      <div class="flex items-center gap-3">
+        <div class="bg-pitch-900 border border-pitch-750 px-4 py-2 rounded text-center">
+          <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">ACTIVE TRADERS</span>
+          <span class="font-teko text-2xl font-bold text-white leading-none">64 STUDENTS</span>
+        </div>
+        <div class="bg-pitch-900 border border-pitch-750 px-4 py-2 rounded text-center">
+          <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">TOTAL POOL</span>
+          <span class="font-teko text-2xl font-bold text-volt leading-none">384,200 🦑</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ATHLETIC PODIUM (TOP 3 FORECASTERS) ================= -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-display font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <i data-lucide="award" class="w-4 h-4 text-trophy"></i>
+          <span>CURRENT PODIUM LEADERS</span>
+        </h2>
+        <span class="text-xs font-mono text-slate-500">Updated after each settled match</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end pt-4">
+        
+        <!-- 2nd Place: Silver (Left) -->
+        <div class="order-2 md:order-1 rounded-xl p-5 podium-silver relative flex flex-col justify-between space-y-4">
+          <div class="absolute -top-3 left-4 bg-slate-300 text-pitch-950 font-display font-black text-xs uppercase px-2.5 py-0.5 rounded shadow flex items-center gap-1">
+            <span>🥈</span> RANK #2
+          </div>
+          
+          <div class="pt-2 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-slate-700/60 border border-slate-400 flex items-center justify-center font-display font-black text-lg text-white">
+              CR
+            </div>
+            <div>
+              <h3 class="font-display font-black text-xl uppercase tracking-tight text-white leading-none">Camille Renault</h3>
+              <span class="text-xs text-slate-400 font-mono">ISA Promo M1</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 bg-pitch-950/80 p-2.5 rounded border border-slate-700/50 text-xs">
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">BANKROLL</span>
+              <span class="font-teko text-2xl font-bold text-white leading-none">11,450 🦑</span>
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">WIN RATE</span>
+              <span class="font-teko text-2xl font-bold text-volt leading-none">72.4%</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-300 pt-1 border-t border-slate-700/50">
+            <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3.5 h-3.5 text-squid"></i> Streak: <strong>2W</strong></span>
+            <span class="font-mono text-[11px] text-slate-400">Form: W L W W</span>
+          </div>
+        </div>
+
+        <!-- 1st Place: Gold (Center - Taller) -->
+        <div class="order-1 md:order-2 rounded-xl p-6 podium-gold relative flex flex-col justify-between space-y-5 md:-translate-y-4">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-trophy text-pitch-950 font-display font-black text-sm uppercase px-4 py-0.5 rounded-full shadow-lg flex items-center gap-1.5">
+            <span>👑</span> CHAMPIONSHIP LEADER
+          </div>
+
+          <div class="pt-3 text-center space-y-2">
+            <div class="w-16 h-16 rounded-xl bg-trophy/20 border-2 border-trophy text-trophy font-display font-black text-2xl flex items-center justify-center mx-auto shadow-md">
+              TB
+            </div>
+            <div>
+              <h3 class="font-display font-black text-2xl sm:text-3xl uppercase tracking-tight text-white leading-none">Thomas Bernard</h3>
+              <p class="text-xs text-trophy font-mono mt-0.5 font-bold">ISA Promo M2 • 28 Bets Won</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 bg-pitch-950/90 p-3 rounded-lg border border-trophy/40 text-center">
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">CHAMPION BANKROLL</span>
+              <span class="font-teko text-3xl font-black text-trophy leading-none">14,820 🦑</span>
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">ACCURACY</span>
+              <span class="font-teko text-3xl font-black text-volt leading-none">81.8%</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-200 pt-1 border-t border-trophy/30">
+            <span class="flex items-center gap-1 text-volt font-bold"><i data-lucide="flame" class="w-4 h-4 text-volt"></i> Streak: 4W in a row</span>
+            <span class="font-mono text-xs text-trophy font-bold">Form: W W W W</span>
+          </div>
+        </div>
+
+        <!-- 3rd Place: Bronze (Right) -->
+        <div class="order-3 md:order-3 rounded-xl p-5 podium-bronze relative flex flex-col justify-between space-y-4">
+          <div class="absolute -top-3 left-4 bg-amber-600 text-white font-display font-black text-xs uppercase px-2.5 py-0.5 rounded shadow flex items-center gap-1">
+            <span>🥉</span> RANK #3
+          </div>
+          
+          <div class="pt-2 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-amber-950/60 border border-amber-600 flex items-center justify-center font-display font-black text-lg text-amber-400">
+              LD
+            </div>
+            <div>
+              <h3 class="font-display font-black text-xl uppercase tracking-tight text-white leading-none">Lucas Dubois</h3>
+              <span class="text-xs text-slate-400 font-mono">ISA Promo L3</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 bg-pitch-950/80 p-2.5 rounded border border-amber-800/50 text-xs">
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">BANKROLL</span>
+              <span class="font-teko text-2xl font-bold text-white leading-none">9,380 🦑</span>
+            </div>
+            <div>
+              <span class="text-[10px] uppercase font-display font-bold text-slate-400 block">WIN RATE</span>
+              <span class="font-teko text-2xl font-bold text-volt leading-none">68.1%</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-300 pt-1 border-t border-amber-800/50">
+            <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3.5 h-3.5 text-squid"></i> Streak: <strong>3W</strong></span>
+            <span class="font-mono text-[11px] text-slate-400">Form: W W W L</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= USER'S PERSONAL STANDINGS CARD ================= -->
+    <section class="bg-pitch-900 border-2 border-volt/50 rounded-xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
+      <div class="absolute right-0 top-0 bottom-0 w-32 bg-volt/5 pointer-events-none"></div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-lg bg-volt text-pitch-950 font-display font-black text-xl flex items-center justify-center shrink-0">
+            #8
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-display font-black text-lg uppercase tracking-tight text-white">Jules Moreau (You)</h3>
+              <span class="px-2 py-0.2 rounded text-[10px] font-display font-bold uppercase tracking-wider bg-volt/20 text-volt border border-volt/30">
+                ACTIVE TRADER
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 font-mono">ISA Promo M1 • Target: Pass #7 Maxime Leroy (2,150 🦑)</p>
+          </div>
+        </div>
+
+        <!-- User live stats -->
+        <div class="flex items-center gap-4 sm:gap-6">
+          <div class="text-right sm:text-center">
+            <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">CURRENT BANKROLL</span>
+            <span id="user-rank-balance" class="font-teko text-2xl sm:text-3xl font-bold text-volt leading-none">1,000 🦑</span>
+          </div>
+          <div class="text-right sm:text-center">
+            <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">OPEN TICKETS</span>
+            <span id="user-open-bets" class="font-teko text-2xl sm:text-3xl font-bold text-white leading-none">0 BETS</span>
+          </div>
+          <a href="index.html" class="px-3.5 py-2 bg-volt hover:bg-volt-400 text-pitch-950 font-display font-black text-xs uppercase tracking-wider rounded transition">
+            BET TO CLIMB →
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= FULL CHAMPIONSHIP STANDINGS TABLE ================= -->
+    <section class="space-y-4">
+      
+      <!-- Table Filter Tabs -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-pitch-800 pb-3">
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <button onclick="filterPromo('all')" class="promo-btn active px-3 py-1 rounded font-display uppercase tracking-wider text-xs font-black bg-volt text-pitch-950 transition">
+            All Promos (M1, M2, L3)
+          </button>
+          <button onclick="filterPromo('M1')" class="promo-btn px-3 py-1 rounded font-display uppercase tracking-wider text-xs font-bold bg-pitch-900 text-slate-300 hover:text-white border border-pitch-800 transition">
+            Master 1 ISA
+          </button>
+          <button onclick="filterPromo('M2')" class="promo-btn px-3 py-1 rounded font-display uppercase tracking-wider text-xs font-bold bg-pitch-900 text-slate-300 hover:text-white border border-pitch-800 transition">
+            Master 2 ISA
+          </button>
+          <button onclick="filterPromo('L3')" class="promo-btn px-3 py-1 rounded font-display uppercase tracking-wider text-xs font-bold bg-pitch-900 text-slate-300 hover:text-white border border-pitch-800 transition">
+            Licence 3 ISA
+          </button>
+        </div>
+
+        <div class="text-xs text-slate-400 font-mono">
+          Showing <span id="filtered-count" class="text-white font-bold">10</span> Forecasters
+        </div>
+      </div>
+
+      <!-- Athletic Table Container -->
+      <div class="overflow-x-auto rounded-xl border-2 border-pitch-800 bg-pitch-900 shadow-xl">
+        <table class="w-full text-left text-xs">
+          
+          <!-- Table Header -->
+          <thead class="bg-pitch-950 border-b-2 border-pitch-800 text-[11px] font-display font-extrabold uppercase tracking-wider text-slate-400">
+            <tr>
+              <th scope="col" class="py-3.5 px-4 text-center w-16">RANK</th>
+              <th scope="col" class="py-3.5 px-4">FORECASTER / STUDENT</th>
+              <th scope="col" class="py-3.5 px-4 text-right">BANKROLL</th>
+              <th scope="col" class="py-3.5 px-4 text-center hidden sm:table-cell">RECORD (W-L)</th>
+              <th scope="col" class="py-3.5 px-4 text-center hidden md:table-cell">WIN ACCURACY</th>
+              <th scope="col" class="py-3.5 px-4 text-center">FORM (LAST 4)</th>
+              <th scope="col" class="py-3.5 px-4 text-center hidden lg:table-cell">STREAK</th>
+            </tr>
+          </thead>
+
+          <!-- Table Body -->
+          <tbody id="standings-table-body" class="divide-y divide-pitch-800/80 font-medium">
+            <!-- Rendered by JS -->
+          </tbody>
+
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ================= BDS SEMESTER PRIZES ================= -->
+    <section class="bg-pitch-900 border border-pitch-800 rounded-xl p-6 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-trophy"></span>
+        <h3 class="font-display font-black text-xl uppercase tracking-tight text-white">
+          SEMESTER REWARDS & PODIUM PRIZES (ISA LILLE BDS)
+        </h3>
+      </div>
+      <p class="text-xs text-slate-400 max-w-2xl">
+        At the conclusion of the academic semester, the final top three students on the IsaMarket Championship Board will be officially awarded prizes during the ISA Annual Gala:
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+        <div class="p-4 rounded-lg bg-pitch-950 border border-trophy/40 space-y-1">
+          <div class="font-display font-black text-sm uppercase text-trophy flex items-center gap-1.5">
+            <span>🥇 1ST PLACE CHAMPION</span>
+          </div>
+          <p class="text-xs font-bold text-white">2x VIP Tickets for LOSC Lille Match</p>
+          <p class="text-[11px] text-slate-400">Stade Pierre-Mauroy match hospitality + Official ISA Varsity Bomber</p>
+        </div>
+
+        <div class="p-4 rounded-lg bg-pitch-950 border border-slate-700 space-y-1">
+          <div class="font-display font-black text-sm uppercase text-slate-300 flex items-center gap-1.5">
+            <span>🥈 2ND PLACE</span>
+          </div>
+          <p class="text-xs font-bold text-white">Official EuroLeague / FFSU Sport Pack</p>
+          <p class="text-[11px] text-slate-400">Match jersey of your choice + Spalding official game basketball</p>
+        </div>
+
+        <div class="p-4 rounded-lg bg-pitch-950 border border-amber-800 space-y-1">
+          <div class="font-display font-black text-sm uppercase text-amber-400 flex items-center gap-1.5">
+            <span>🥉 3RD PLACE</span>
+          </div>
+          <p class="text-xs font-bold text-white">50€ Decathlon Gift Card</p>
+          <p class="text-[11px] text-slate-400">Plus official ISA Lille Bureau des Sports merchandise set</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-pitch-950 border-t border-pitch-800 mt-16 py-10 text-slate-400 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo.png" alt="ISA Lille Logo" class="w-8 h-8 rounded object-contain border border-pitch-750 bg-pitch-900 p-0.5" onerror="this.src='public/logo.png'">
+        <div>
+          <span class="font-display font-black text-sm uppercase text-white tracking-wider">ISAMARKET CHAMPIONSHIP</span>
+          <p class="text-[10px] text-slate-500">FSSEP • Université de Lille • Educational Sport Betting Simulation</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs font-display font-bold uppercase tracking-wider">
+        <a href="index.html" class="text-volt hover:underline flex items-center gap-1">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Back to Live Matches
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= JAVASCRIPT ================= -->
+  <script>
+    // Master Forecasters Standings Data
+    const STANDINGS = [
+      { rank: 1, name: 'Thomas Bernard', promo: 'M2', program: 'ISA M2', balance: 14820, won: 28, total: 34, streak: '4W 🔥', form: ['W', 'W', 'W', 'W'], bestOdds: '4.20' },
+      { rank: 2, name: 'Camille Renault', promo: 'M1', program: 'ISA M1', balance: 11450, won: 22, total: 30, streak: '2W 🔥', form: ['W', 'L', 'W', 'W'], bestOdds: '3.12' },
+      { rank: 3, name: 'Lucas Dubois', promo: 'L3', program: 'ISA L3', balance: 9380, won: 19, total: 28, streak: '3W 🔥', form: ['W', 'W', 'W', 'L'], bestOdds: '3.45' },
+      { rank: 4, name: 'Emma Lefebvre', promo: 'M2', program: 'ISA M2', balance: 7240, won: 16, total: 25, streak: '1W', form: ['L', 'W', 'W', 'L'], bestOdds: '2.80' },
+      { rank: 5, name: 'Alexandre Petit', promo: 'M1', program: 'ISA M1', balance: 5120, won: 14, total: 22, streak: '2W 🔥', form: ['W', 'W', 'L', 'W'], bestOdds: '2.44' },
+      { rank: 6, name: 'Inès Martin', promo: 'L3', program: 'ISA L3', balance: 3400, won: 11, total: 20, streak: '1L', form: ['W', 'L', 'L', 'W'], bestOdds: '1.92' },
+      { rank: 7, name: 'Maxime Leroy', promo: 'M1', program: 'ISA M1', balance: 2150, won: 9, total: 17, streak: '1W', form: ['L', 'L', 'W', 'W'], bestOdds: '2.10' },
+      { rank: 8, name: 'Jules Moreau (You)', promo: 'M1', program: 'ISA M1', balance: 1000, won: 4, total: 6, streak: 'Ready', form: ['-', '-', '-', '-'], bestOdds: '1.72', isUser: true },
+      { rank: 9, name: 'Sophie Laurent', promo: 'M2', program: 'ISA M2', balance: 850, won: 7, total: 18, streak: '2L', form: ['L', 'L', 'W', 'L'], bestOdds: '2.38' },
+      { rank: 10, name: 'Antoine Roux', promo: 'L3', program: 'ISA L3', balance: 620, won: 5, total: 16, streak: '3L', form: ['L', 'L', 'L', 'W'], bestOdds: '1.85' },
+    ];
+
+    let currentFilter = 'all';
+    let userBalance = 1000;
+    let userPositions = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserState();
+      renderStandings();
+      lucide.createIcons();
+    });
+
+    function loadUserState() {
+      const savedBalance = localStorage.getItem('isamarket_balance');
+      if (savedBalance !== null) {
+        userBalance = parseInt(savedBalance, 10);
+      }
+      const savedPositions = localStorage.getItem('isamarket_positions');
+      if (savedPositions) {
+        try {
+          userPositions = JSON.parse(savedPositions);
+        } catch (e) {
+          userPositions = [];
+        }
+      }
+
+      // Update User live balance on page
+      const balEl = document.getElementById('user-balance');
+      if (balEl) balEl.textContent = userBalance.toLocaleString();
+
+      const rankBalEl = document.getElementById('user-rank-balance');
+      if (rankBalEl) rankBalEl.textContent = `${userBalance.toLocaleString()} 🦑`;
+
+      const openBetsEl = document.getElementById('user-open-bets');
+      if (openBetsEl) openBetsEl.textContent = `${userPositions.length} BET${userPositions.length === 1 ? '' : 'S'}`;
+
+      const navCount = document.getElementById('nav-positions-count');
+      if (navCount && userPositions.length > 0) {
+        navCount.textContent = userPositions.length;
+        navCount.classList.remove('hidden');
+      }
+    }
+
+    function filterPromo(promo) {
+      currentFilter = promo;
+      document.querySelectorAll('.promo-btn').forEach(btn => {
+        btn.classList.remove('bg-volt', 'text-pitch-950', 'active', 'font-black');
+        btn.classList.add('bg-pitch-900', 'text-slate-300', 'font-bold');
+      });
+      
+      const activeBtn = event?.target?.closest('button');
+      if (activeBtn) {
+        activeBtn.classList.add('bg-volt', 'text-pitch-950', 'active', 'font-black');
+        activeBtn.classList.remove('bg-pitch-900', 'text-slate-300', 'font-bold');
+      }
+
+      renderStandings();
+    }
+
+    function renderStandings() {
+      const tbody = document.getElementById('standings-table-body');
+      if (!tbody) return;
+
+      // Update user in data with current dynamic balance
+      const data = STANDINGS.map(item => {
+        if (item.isUser) {
+          return { ...item, balance: userBalance };
+        }
+        return item;
+      }).sort((a, b) => b.balance - a.balance);
+
+      const filtered = data.filter(item => {
+        if (currentFilter === 'all') return true;
+        return item.promo === currentFilter;
+      });
+
+      document.getElementById('filtered-count').textContent = filtered.length;
+
+      tbody.innerHTML = filtered.map((u, idx) => {
+        const accuracy = Math.round((u.won / u.total) * 100);
+        const rankDisplay = idx + 1;
+        const isMedal = rankDisplay <= 3;
+        const medalEmoji = rankDisplay === 1 ? '🥇' : rankDisplay === 2 ? '🥈' : rankDisplay === 3 ? '🥉' : `#${rankDisplay}`;
+
+        const formPills = u.form.map(f => {
+          if (f === 'W') return `<span class="w-5 h-5 rounded-full bg-volt/20 text-volt font-mono font-bold text-[10px] flex items-center justify-center border border-volt/40">W</span>`;
+          if (f === 'L') return `<span class="w-5 h-5 rounded-full bg-squid/20 text-squid font-mono font-bold text-[10px] flex items-center justify-center border border-squid/40">L</span>`;
+          return `<span class="w-5 h-5 rounded-full bg-pitch-800 text-slate-500 font-mono text-[10px] flex items-center justify-center">-</span>`;
+        }).join('');
+
+        return `
+          <tr class="standings-row ${u.isUser ? 'bg-volt/10 font-bold' : ''}">
+            <!-- Rank -->
+            <td class="py-3.5 px-4 text-center font-teko text-xl ${isMedal ? 'text-trophy font-bold' : 'text-slate-400'}">
+              ${isMedal ? medalEmoji : `#${rankDisplay}`}
+            </td>
+
+            <!-- Forecaster Name & Promo -->
+            <td class="py-3.5 px-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-pitch-800 border border-pitch-700 flex items-center justify-center font-display font-black text-xs ${u.isUser ? 'text-volt border-volt' : 'text-slate-300'}">
+                  ${u.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-display font-extrabold uppercase text-sm ${u.isUser ? 'text-volt' : 'text-white'}">${u.name}</span>
+                    ${u.isUser ? '<span class="text-[9px] font-display font-black uppercase px-1.5 py-0.2 bg-volt text-pitch-950 rounded">YOU</span>' : ''}
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">${u.program}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Bankroll -->
+            <td class="py-3.5 px-4 text-right">
+              <span class="font-teko text-2xl font-bold ${u.isUser ? 'text-volt' : 'text-white'} leading-none">
+                ${u.balance.toLocaleString()}
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono ml-0.5">🦑</span>
+            </td>
+
+            <!-- Record -->
+            <td class="py-3.5 px-4 text-center font-mono text-slate-300 hidden sm:table-cell">
+              <span class="text-volt font-bold">${u.won}W</span> - <span class="text-slate-400">${u.total - u.won}L</span>
+            </td>
+
+            <!-- Accuracy -->
+            <td class="py-3.5 px-4 text-center hidden md:table-cell">
+              <div class="inline-flex items-center gap-1.5">
+                <div class="w-12 bg-pitch-950 rounded-full h-1.5 overflow-hidden border border-pitch-800">
+                  <div class="bg-volt h-full" style="width: ${accuracy}%;"></div>
+                </div>
+                <span class="font-mono text-xs font-semibold text-slate-300">${accuracy}%</span>
+              </div>
+            </td>
+
+            <!-- Form -->
+            <td class="py-3.5 px-4">
+              <div class="flex items-center justify-center gap-1">
+                ${formPills}
+              </div>
+            </td>
+
+            <!-- Streak -->
+            <td class="py-3.5 px-4 text-center hidden lg:table-cell font-mono text-xs ${u.streak.includes('🔥') ? 'text-volt font-bold' : 'text-slate-400'}">
+              ${u.streak}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
