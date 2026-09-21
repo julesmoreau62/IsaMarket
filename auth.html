@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication | IsaMarket</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['"Barlow Condensed"', 'sans-serif'],
+            teko: ['Teko', 'sans-serif'],
+          },
+          colors: {
+            pitch: {
+              950: '#07080b',
+              900: '#0b0e14',
+              850: '#10141d',
+              800: '#161c28',
+              750: '#1c2433',
+              700: '#252f44',
+            },
+            squid: { DEFAULT: '#ff2a6d' },
+            volt: { DEFAULT: '#00f59b', hover: '#00c77d' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07080b;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      background-image: radial-gradient(ellipse at 50% 0%, rgba(0, 245, 155, 0.05) 0%, transparent 60%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-pitch-900 border-2 border-pitch-800 rounded-2xl shadow-2xl overflow-hidden relative">
+    
+    <!-- Header -->
+    <div class="p-6 border-b border-pitch-800 text-center bg-pitch-950">
+      <div class="w-12 h-12 rounded-xl bg-pitch-850 p-0.5 border-2 border-volt mx-auto mb-3 flex items-center justify-center">
+        <img src="assets/logo.png" alt="Logo" class="w-full h-full object-contain" onerror="this.src='public/logo.png'">
+      </div>
+      <h1 class="font-display font-black text-2xl uppercase tracking-tighter text-white italic">
+        ISA<span class="text-volt">MARKET</span>
+      </h1>
+      <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-bold">Student Sportsbook Login</p>
+    </div>
+
+    <!-- Forms Container -->
+    <div class="p-6 relative min-h-[320px]">
+      
+      <!-- SIGN IN FORM -->
+      <div id="view-signin" class="transition-all duration-300">
+        <form id="form-signin" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+            <input type="email" id="signin-email" required class="w-full px-4 py-2.5 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+            <input type="password" id="signin-password" required class="w-full px-4 py-2.5 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+          
+          <div class="flex justify-end">
+            <button type="button" onclick="switchView('reset')" class="text-xs text-slate-400 hover:text-volt transition">Forgot password?</button>
+          </div>
+
+          <button type="submit" id="btn-signin" class="w-full py-3 bg-volt hover:bg-volt-hover text-pitch-950 font-display font-black text-sm uppercase tracking-wider rounded transition flex justify-center items-center gap-2 mt-4">
+            <span>Access Sportsbook</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+        <p class="text-xs text-center text-slate-400 mt-6">
+          New student? <button onclick="switchView('signup')" class="text-volt font-bold hover:underline">Create an account</button>
+        </p>
+      </div>
+
+      <!-- SIGN UP FORM -->
+      <div id="view-signup" class="hidden absolute top-6 left-6 right-6 transition-all duration-300">
+        <form id="form-signup" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Full Name</label>
+            <input type="text" id="signup-name" required class="w-full px-4 py-2 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+            <input type="email" id="signup-email" required class="w-full px-4 py-2 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+            <input type="password" id="signup-password" required class="w-full px-4 py-2 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+
+          <button type="submit" id="btn-signup" class="w-full py-3 bg-white hover:bg-slate-200 text-pitch-950 font-display font-black text-sm uppercase tracking-wider rounded transition flex justify-center items-center gap-2 mt-4">
+            <span>Create Account</span>
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </button>
+        </form>
+        <p class="text-xs text-center text-slate-400 mt-6">
+          Already have an account? <button onclick="switchView('signin')" class="text-white font-bold hover:underline">Sign In</button>
+        </p>
+      </div>
+
+      <!-- RESET PASSWORD FORM -->
+      <div id="view-reset" class="hidden absolute top-6 left-6 right-6 transition-all duration-300">
+        <form id="form-reset" class="space-y-4">
+          <p class="text-sm text-slate-300 mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+          <div>
+            <label class="block text-[11px] font-display font-bold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+            <input type="email" id="reset-email" required class="w-full px-4 py-2.5 bg-pitch-950 border border-pitch-750 rounded text-sm text-white focus:outline-none focus:border-volt transition">
+          </div>
+
+          <button type="submit" id="btn-reset" class="w-full py-3 bg-pitch-800 hover:bg-pitch-750 border border-pitch-700 text-white font-display font-black text-sm uppercase tracking-wider rounded transition mt-4">
+            Send Reset Link
+          </button>
+        </form>
+        <p class="text-xs text-center text-slate-400 mt-6">
+          Back to <button onclick="switchView('signin')" class="text-white font-bold hover:underline">Sign In</button>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Error/Success Message Area -->
+    <div id="msg-box" class="hidden p-3 m-6 mt-0 rounded text-xs font-medium border text-center"></div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function switchView(view) {
+      document.getElementById('view-signin').classList.add('hidden');
+      document.getElementById('view-signup').classList.add('hidden');
+      document.getElementById('view-reset').classList.add('hidden');
+      document.getElementById('msg-box').classList.add('hidden');
+      
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+    }
+
+    function showMessage(msg, isError = true) {
+      const box = document.getElementById('msg-box');
+      box.textContent = msg;
+      box.classList.remove('hidden', 'bg-red-900/30', 'text-red-400', 'border-red-900', 'bg-green-900/30', 'text-green-400', 'border-green-900');
+      
+      if (isError) {
+        box.classList.add('bg-red-900/30', 'text-red-400', 'border-red-900');
+      } else {
+        box.classList.add('bg-green-900/30', 'text-green-400', 'border-green-900');
+      }
+    }
+  </script>
+
+  <!-- Supabase Auth Logic -->
+  <script type="module">
+    import { supabase, isSupabaseConfigured } from './src/lib/supabase.js';
+
+    if (!isSupabaseConfigured) {
+      showMessage("Supabase is not configured! Please check your .env file.", true);
+    }
+
+    // Check if already logged in
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      try {
+        if (error) throw error;
+        if (session) {
+          window.location.href = './index.html';
+        }
+      } catch (error) {
+        // Handle error
+      }
+    });
+
+    // Sign In
+    document.getElementById('form-signin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+      const btn = document.getElementById('btn-signin');
+      btn.disabled = true; btn.innerHTML = 'Loading...';
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        showMessage(error.message, true);
+        btn.disabled = false; btn.innerHTML = '<span>Access Sportsbook</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
+        lucide.createIcons();
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // Sign Up
+    document.getElementById('form-signup').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('signup-name').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const btn = document.getElementById('btn-signup');
+      btn.disabled = true; btn.innerHTML = 'Loading...';
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name }
+        }
+      });
+      
+      if (error) {
+        showMessage(error.message, true);
+        btn.disabled = false; btn.innerHTML = '<span>Create Account</span><i data-lucide="user-plus" class="w-4 h-4"></i>';
+        lucide.createIcons();
+      } else {
+        showMessage("Account created successfully! Check your email if confirmation is required, or just sign in.", false);
+        switchView('signin');
+      }
+    });
+
+    // Reset Password
+    document.getElementById('form-reset').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('reset-email').value;
+      const btn = document.getElementById('btn-reset');
+      btn.disabled = true; btn.innerHTML = 'Loading...';
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/index.html'
+      });
+      
+      if (error) {
+        showMessage(error.message, true);
+        btn.disabled = false; btn.innerHTML = 'Send Reset Link';
+      } else {
+        showMessage("Password reset instructions sent to your email.", false);
+        btn.innerHTML = 'Sent!';
+      }
+    });
+
+  </script>
+</body>
+</html>
