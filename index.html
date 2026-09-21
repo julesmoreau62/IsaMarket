@@ -150,7 +150,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-squid selection:text-white">
+<body class="min-h-screen flex flex-col antialiased selection:bg-squid selection:text-white" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease">
 
   <!-- ================= LIVE STADIUM TICKER RIBBON (ESPN / BROADCAST STYLE) ================= -->
   <div class="bg-pitch-950 border-b border-pitch-800 text-xs text-slate-300 overflow-hidden relative z-50">
@@ -204,7 +204,7 @@
           <!-- Item 5 -->
           <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
             <span class="font-display font-bold text-trophy uppercase">🥇 Leaderboard:</span>
-            <span class="text-white font-bold">Thomas Bernard leading with 14,820 🦑</span>
+            <span class="text-white font-bold">Waiting for matches...</span>
             <span class="text-volt font-semibold">(4W Streak 🔥)</span>
           </span>
           <span class="text-slate-600">•</span>
@@ -251,7 +251,7 @@
 
           <span class="inline-flex items-center gap-2 mx-5 text-slate-300">
             <span class="font-display font-bold text-trophy uppercase">🥇 Leaderboard:</span>
-            <span class="text-white font-bold">Thomas Bernard leading with 14,820 🦑</span>
+            <span class="text-white font-bold">Waiting for matches...</span>
             <span class="text-volt font-semibold">(4W Streak 🔥)</span>
           </span>
         </div>
@@ -365,11 +365,11 @@
         <!-- Student Profile Button -->
         <div class="relative">
           <button id="profileBtn" onclick="toggleProfileDropdown()" class="flex items-center gap-2 bg-pitch-900 hover:bg-pitch-800 border border-pitch-750 rounded p-1.5 sm:px-2.5 transition">
-            <div class="w-7 h-7 rounded bg-pitch-800 border border-pitch-700 text-white font-display font-black text-xs flex items-center justify-center">
+            <div id="profile-initials" class="w-7 h-7 rounded bg-pitch-800 border border-pitch-700 text-white font-display font-black text-xs flex items-center justify-center">
               JM
             </div>
             <div class="hidden md:flex flex-col text-left">
-              <span class="text-xs font-bold text-white leading-tight">Jules Moreau</span>
+              <span id="profile-name" class="text-xs font-bold text-white leading-tight">Jules Moreau</span>
               <span class="text-[9px] font-display uppercase tracking-wider text-slate-400 font-semibold leading-none">M1 ISA</span>
             </div>
             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 hidden md:inline"></i>
@@ -378,9 +378,15 @@
           <!-- Dropdown menu -->
           <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-60 bg-pitch-900 border border-pitch-700 rounded-lg shadow-2xl py-2 z-50">
             <div class="px-4 py-2 border-b border-pitch-800">
-              <p class="text-xs font-bold text-white">Jules Moreau</p>
-              <p class="text-[10px] text-slate-400 font-mono">jules@univ-lille.fr • Promo 2026</p>
+              <p id="dropdown-name" class="text-xs font-bold text-white">Jules Moreau</p>
+              <p class="text-[10px] text-slate-400 font-mono">Student Account</p>
             </div>
+              <button onclick="openPositionsModal()" class="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-pitch-800 rounded transition flex items-center gap-2">
+                <i data-lucide="ticket" class="w-4 h-4"></i> My Bets
+              </button>
+              <button onclick="window.supabaseLogOut()" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-pitch-800 rounded transition flex items-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4 text-red-400"></i> Sign Out
+              </button>
             <button onclick="openPositionsModal(); toggleProfileDropdown()" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-pitch-800 flex items-center gap-2">
               <i data-lucide="ticket" class="w-4 h-4 text-volt"></i> Active Bets & Slip
             </button>
@@ -420,123 +426,6 @@
   <!-- ================= MAIN CONTENT WRAPPER ================= -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
-    <!-- ================= FEATURED HEADLINE MATCHDAY PROP (SPORTS BROADCAST STYLE) ================= -->
-    <section id="hero-banner" class="relative overflow-hidden rounded-xl bg-pitch-900 border-2 border-pitch-700 p-5 sm:p-7 shadow-2xl stadium-grid">
-      
-      <!-- Floodlight highlight beam -->
-      <div class="absolute top-0 right-1/4 w-96 h-48 bg-volt/5 blur-2xl pointer-events-none"></div>
-
-      <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        
-        <!-- Left: Featured Prop Details -->
-        <div class="lg:col-span-8 space-y-4">
-          <div class="flex flex-wrap items-center gap-2.5">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-display font-black uppercase tracking-wider bg-volt text-pitch-950 shadow">
-              <span class="w-2 h-2 rounded-full bg-pitch-950 animate-ping"></span>
-              HEADLINE IN-PLAY PROP
-            </span>
-            <span class="text-xs text-slate-300 flex items-center gap-1 font-semibold">
-              <i data-lucide="clock" class="w-3.5 h-3.5 text-trophy"></i> Resolves During Today's Lecture
-            </span>
-            <span class="text-slate-600">•</span>
-            <span class="text-xs text-slate-400 flex items-center gap-1 font-mono font-semibold">
-              <span>🦑</span> 56,800 SQUID STAKED
-            </span>
-          </div>
-
-          <div class="flex items-start gap-4">
-            <div class="w-14 h-14 rounded-lg bg-pitch-850 border-2 border-pitch-700 p-2 shrink-0 flex items-center justify-center text-3xl shadow-md">
-              ⏱️
-            </div>
-            <div>
-              <h1 class="text-2xl sm:text-3xl lg:text-4xl font-display font-black uppercase tracking-tight text-white leading-tight">
-                How many minutes before William talks about volunteering?
-              </h1>
-              <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl font-normal leading-relaxed">
-                Official timer starts the second class begins. Resolves to <strong>&lt; 15 mins</strong> if William mentions "volunteering", "volunteers", or "bénévolat" within the first 15 minutes of lecture!
-              </p>
-            </div>
-          </div>
-
-          <!-- European Odds Stadium Scoreboard Display -->
-          <div class="space-y-2 pt-2">
-            <div class="grid grid-cols-2 gap-4">
-              
-              <!-- Outcome 1: < 15 mins -->
-              <div class="p-3 bg-pitch-850 border border-pitch-750 rounded-lg flex items-center justify-between">
-                <div>
-                  <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">&lt; 15 MINS (FAVORITE)</span>
-                  <span class="font-teko text-3xl font-bold text-volt leading-none">ODDS 1.47</span>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs font-bold text-slate-300">68% PROB</span>
-                  <span class="text-[10px] text-slate-400 block">+47.1% Net Profit</span>
-                </div>
-              </div>
-
-              <!-- Outcome 2: >= 15 mins -->
-              <div class="p-3 bg-pitch-850 border border-pitch-750 rounded-lg flex items-center justify-between">
-                <div>
-                  <span class="text-[10px] font-display uppercase tracking-widest text-slate-400 font-bold block">≥ 15 MINS (UNDERDOG)</span>
-                  <span class="font-teko text-3xl font-bold text-squid leading-none">ODDS 3.12</span>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs font-bold text-slate-300">32% PROB</span>
-                  <span class="text-[10px] text-slate-400 block">+212.5% Net Profit</span>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Stadium Dual Gauge Bar -->
-            <div class="h-3 w-full bg-pitch-950 rounded-sm overflow-hidden p-0.5 flex border border-pitch-800">
-              <div class="bg-volt h-full transition-all duration-500 rounded-l-sm" style="width: 68%;"></div>
-              <div class="bg-squid h-full transition-all duration-500 rounded-r-sm" style="width: 32%;"></div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Right: Instant Match Bet Slip Action Box -->
-        <div class="lg:col-span-4 bg-pitch-950 border-2 border-pitch-750 rounded-xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
-          <div class="flex items-center justify-between border-b border-pitch-800 pb-2.5">
-            <span class="text-xs font-display font-extrabold uppercase tracking-wider text-white flex items-center gap-1.5">
-              <i data-lucide="zap" class="w-3.5 h-3.5 text-volt"></i> Quick Match Bet
-            </span>
-            <span class="text-[10px] font-mono text-slate-400">European Odds Format</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <!-- Bet Button < 15 mins -->
-            <button 
-              onclick="openBetModal(1, 'YES')"
-              class="flex flex-col items-center justify-center p-3 rounded bg-volt/10 hover:bg-volt/25 border-2 border-volt/40 hover:border-volt text-volt transition group"
-            >
-              <span class="text-[10px] font-display font-extrabold uppercase tracking-wider text-slate-300">&lt; 15 mins</span>
-              <span class="font-teko text-3xl font-black text-white group-hover:text-volt transition leading-none my-0.5">1.47</span>
-              <span class="text-[10px] font-bold text-volt">Bet Favorite →</span>
-            </button>
-
-            <!-- Bet Button >= 15 mins -->
-            <button 
-              onclick="openBetModal(1, 'NO')"
-              class="flex flex-col items-center justify-center p-3 rounded bg-squid/10 hover:bg-squid/25 border-2 border-squid/40 hover:border-squid text-squid transition group"
-            >
-              <span class="text-[10px] font-display font-extrabold uppercase tracking-wider text-slate-300">≥ 15 mins</span>
-              <span class="font-teko text-3xl font-black text-white group-hover:text-squid transition leading-none my-0.5">3.12</span>
-              <span class="text-[10px] font-bold text-squid">Bet Underdog →</span>
-            </button>
-          </div>
-
-          <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1.5 bg-pitch-900 py-2 rounded border border-pitch-800">
-            <i data-lucide="shield-check" class="w-4 h-4 text-volt shrink-0"></i>
-            <span>Verified in live lecture by ISA Class of 2026</span>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
     <!-- ================= MARKETS GRID HEADER ================= -->
     <div class="flex items-center justify-between pt-2">
       <div>
@@ -551,6 +440,9 @@
 
       <!-- Quick Action Buttons -->
       <div class="flex items-center gap-2">
+        <button onclick="openCreateMarketModal()" class="text-xs font-display font-bold uppercase tracking-wider text-pitch-950 bg-volt hover:bg-volt-400 transition flex items-center gap-1.5 px-3 py-1.5 rounded shadow">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Create Bet
+        </button>
         <button onclick="filterCategory('all')" class="text-xs font-display font-bold uppercase tracking-wider text-slate-400 hover:text-white transition flex items-center gap-1.5 bg-pitch-900 border border-pitch-800 px-3 py-1.5 rounded">
           <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Refresh Odds
         </button>
@@ -676,26 +568,11 @@
         <!-- Bet Slip Body -->
         <div class="p-5 flex-1 overflow-y-auto space-y-5">
           
-          <!-- Outcome Selection Buttons (YES / NO with European Odds) -->
+          <!-- Outcome Selection Buttons (Dynamic Options) -->
           <div class="space-y-1.5">
             <label class="text-[11px] font-display font-bold uppercase tracking-wider text-slate-400">Select Outcome & European Odds</label>
-            <div class="grid grid-cols-2 gap-2 bg-pitch-950 p-1.5 rounded border border-pitch-800">
-              <button 
-                id="drawer-outcome-yes" 
-                onclick="selectDrawerOutcome('YES')" 
-                class="py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition"
-              >
-                <span id="drawer-outcome-yes-label" class="leading-none">Yes</span>
-                <span id="drawer-yes-odds" class="font-teko text-2xl font-black leading-none">1.47</span>
-              </button>
-              <button 
-                id="drawer-outcome-no" 
-                onclick="selectDrawerOutcome('NO')" 
-                class="py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition"
-              >
-                <span id="drawer-outcome-no-label" class="leading-none">No</span>
-                <span id="drawer-no-odds" class="font-teko text-2xl font-black leading-none">3.12</span>
-              </button>
+            <div id="drawer-outcomes-container" class="grid grid-cols-2 gap-2 bg-pitch-950 p-1.5 rounded border border-pitch-800">
+              <!-- Dynamically populated by JS -->
             </div>
           </div>
 
@@ -965,6 +842,90 @@
     </div>
   </div>
 
+  <!-- ================= CREATE MARKET MODAL ================= -->
+  <div id="create-market-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="bg-pitch-900 border-2 border-pitch-700 rounded-xl max-w-lg w-full shadow-2xl relative my-auto">
+      
+      <div class="p-5 border-b border-pitch-800 flex items-center justify-between bg-pitch-950 rounded-t-xl">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded bg-volt/20 text-volt flex items-center justify-center">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-black text-white text-base uppercase tracking-tight">CREATE CUSTOM BET</h3>
+            <p class="text-xs text-slate-400">Add a new market to the platform</p>
+          </div>
+        </div>
+        <button onclick="closeCreateMarketModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-pitch-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-sm text-slate-300">
+        <div class="space-y-1.5">
+          <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Bet Title</label>
+          <input type="text" id="new-market-title" placeholder="e.g. Will France win the next match?" class="w-full px-3 py-2 bg-pitch-950 border border-pitch-800 rounded text-white focus:outline-none focus:border-volt transition">
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Description / Context</label>
+          <textarea id="new-market-desc" rows="2" placeholder="Details about how and when it resolves..." class="w-full px-3 py-2 bg-pitch-950 border border-pitch-800 rounded text-white focus:outline-none focus:border-volt transition"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Category</label>
+            <select id="new-market-category" class="w-full px-3 py-2 bg-pitch-950 border border-pitch-800 rounded text-white focus:outline-none focus:border-volt transition">
+              <option value="isa">ISA & Campus</option>
+              <option value="football">Football</option>
+              <option value="basketball">Basketball</option>
+              <option value="olympics">Global Sports</option>
+              <option value="campus">Student Life</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Voting End Time</label>
+            <input type="datetime-local" id="new-market-time" class="w-full px-3 py-2 bg-pitch-950 border border-pitch-800 rounded text-white focus:outline-none focus:border-volt transition">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Excluded Users (Comma separated)</label>
+          <input type="text" id="new-market-excluded" placeholder="e.g. William, Thomas Bernard" class="w-full px-3 py-2 bg-pitch-950 border border-pitch-800 rounded text-white focus:outline-none focus:border-volt transition">
+          <p class="text-[10px] text-slate-500">These people won't see or bet on this market.</p>
+        </div>
+
+        <div class="space-y-1.5 pt-2 border-t border-pitch-800">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-display font-bold uppercase tracking-wider text-slate-400">Bet Options & Probabilities</label>
+            <button type="button" onclick="addMarketOption()" class="text-[11px] font-bold text-volt hover:underline flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i> Add Option
+            </button>
+          </div>
+          <div id="new-market-options-list" class="space-y-2">
+            <div class="flex gap-2 market-option-row">
+              <input type="text" placeholder="e.g. Yes, Win" value="Yes" class="w-2/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-label">
+              <input type="number" placeholder="%" value="50" min="1" max="99" class="w-1/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-prob" oninput="handleProbInput(this)">
+            </div>
+            <div class="flex gap-2 market-option-row">
+              <input type="text" placeholder="e.g. No, Lose" value="No" class="w-2/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-label">
+              <input type="number" placeholder="%" value="50" min="1" max="99" class="w-1/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-prob" oninput="handleProbInput(this)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-pitch-800 bg-pitch-950 flex justify-end gap-3 rounded-b-xl">
+        <button onclick="closeCreateMarketModal()" class="px-4 py-2 bg-pitch-800 text-slate-300 text-xs font-display font-bold uppercase tracking-wider rounded transition hover:bg-pitch-750">
+          Cancel
+        </button>
+        <button onclick="saveNewMarket()" class="px-4 py-2 bg-volt text-pitch-950 text-xs font-display font-black uppercase tracking-wider rounded transition hover:bg-volt-400">
+          Launch Market
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= FLOATING TOAST NOTIFICATION ================= -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-pitch-900 border-2 border-volt text-white px-4 py-3 rounded-lg shadow-2xl">
     <div class="w-7 h-7 rounded bg-volt/20 text-volt flex items-center justify-center shrink-0">
@@ -979,169 +940,7 @@
   <!-- ================= APPLICATION JAVASCRIPT ================= -->
   <script>
     // Initial Market Data with European Decimal Odds & Athletic Props
-    const INITIAL_MARKETS = [
-      {
-        id: 1,
-        category: 'isa',
-        categoryName: 'Classroom',
-        icon: '⏱️',
-        title: 'How many minutes before William talks about volunteering?',
-        description: 'Resolves to "< 15 mins" if William mentions volunteering within the first 15 minutes of lecture, or "≥ 15 mins" if later or never.',
-        yesProb: 0.68,
-        noProb: 0.32,
-        yesLabel: '< 15 mins',
-        noLabel: '≥ 15 mins',
-        volume: 56800,
-        endDate: 'Today\'s Lecture',
-        image: 'assets/logo.png',
-        featured: true,
-        tag: 'LIVE PROP'
-      },
-      {
-        id: 2,
-        category: 'football',
-        categoryName: 'Football',
-        icon: '⚽',
-        title: 'Will LOSC Lille finish in Ligue 1 Top 3 this season?',
-        description: 'Resolves to Yes if LOSC Lille qualifies directly for the UEFA Champions League group stage.',
-        yesProb: 0.58,
-        noProb: 0.42,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 34120,
-        endDate: 'May 18, 2026',
-        image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
-        tag: 'LIGUE 1'
-      },
-      {
-        id: 3,
-        category: 'isa',
-        categoryName: 'ISA Campus',
-        icon: '🎟️',
-        title: 'Will the ISA Annual Sports Gala tickets sell out within 24 hours?',
-        description: 'BDS Gala ticket sales opening prediction for master and bachelor students.',
-        yesProb: 0.84,
-        noProb: 0.16,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 18900,
-        endDate: 'Apr 10, 2026',
-        image: 'assets/logo.png',
-        tag: 'BDS GALA'
-      },
-      {
-        id: 4,
-        category: 'olympics',
-        categoryName: 'Global Sports',
-        icon: '🏆',
-        title: 'Will France reach the Final of the 2026 FIFA World Cup?',
-        description: 'Resolves to Yes if the French National Team plays the 2026 World Cup Final in MetLife Stadium.',
-        yesProb: 0.41,
-        noProb: 0.59,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 76500,
-        endDate: 'Jul 19, 2026',
-        image: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=400&q=80',
-        tag: 'WORLD CUP'
-      },
-      {
-        id: 5,
-        category: 'basketball',
-        categoryName: 'Basketball',
-        icon: '🏀',
-        title: 'Will the ISA 3x3 Basketball Team make the Regional Final Four?',
-        description: 'FFSU Regional Championship in Villeneuve d\'Ascq.',
-        yesProb: 0.63,
-        noProb: 0.37,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 12400,
-        endDate: 'Apr 30, 2026',
-        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=400&q=80',
-        tag: 'FFSU 3X3'
-      },
-      {
-        id: 6,
-        category: 'campus',
-        categoryName: 'Student Life',
-        icon: '🍻',
-        title: 'Will the BDS organise an ISA Ski Trip to Val Thorens in 2027?',
-        description: 'Annual winter semester sports retreat proposition by the Bureau des Sports.',
-        yesProb: 0.89,
-        noProb: 0.11,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 9800,
-        endDate: 'Dec 15, 2026',
-        image: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?auto=format&fit=crop&w=400&q=80',
-        tag: 'SKI RETREAT'
-      },
-      {
-        id: 7,
-        category: 'isa',
-        categoryName: 'ISA Campus',
-        icon: '📊',
-        title: 'Will the class average in Sport Economics & Finance be above 14/20?',
-        description: 'Semester exam graded across all ISA Master 1 students.',
-        yesProb: 0.47,
-        noProb: 0.53,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 21300,
-        endDate: 'Jun 12, 2026',
-        image: 'assets/logo.png',
-        tag: 'EXAM RESULTS'
-      },
-      {
-        id: 8,
-        category: 'football',
-        categoryName: 'Football',
-        icon: '👑',
-        title: 'Will Kylian Mbappé win the 2026 Ballon d\'Or?',
-        description: 'Resolves to Yes if France Football awards the Ballon d\'Or to Kylian Mbappé.',
-        yesProb: 0.52,
-        noProb: 0.48,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 64200,
-        endDate: 'Oct 30, 2026',
-        image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=400&q=80',
-        tag: 'BALLON D\'OR'
-      },
-      {
-        id: 9,
-        category: 'olympics',
-        categoryName: 'Global Sports',
-        icon: '🎾',
-        title: 'Will Carlos Alcaraz win the 2026 French Open (Roland-Garros)?',
-        description: 'Men\'s singles tournament at Stade Roland Garros, Paris.',
-        yesProb: 0.65,
-        noProb: 0.35,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 28900,
-        endDate: 'Jun 07, 2026',
-        image: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=400&q=80',
-        tag: 'ROLAND-GARROS'
-      },
-      {
-        id: 10,
-        category: 'isa',
-        categoryName: 'ISA Campus',
-        icon: '🎓',
-        title: 'Will ISA win the 2026 Lille Inter-University Sports Championship?',
-        description: 'Resolves to Yes if ISA finishes 1st overall in the Université de Lille tournament.',
-        yesProb: 0.72,
-        noProb: 0.28,
-        yesLabel: 'Yes',
-        noLabel: 'No',
-        volume: 48250,
-        endDate: 'May 24, 2026',
-        image: 'assets/logo.png',
-        tag: 'UNIV DERBY'
-      }
-    ];
+    
 
     // Championship Standings Mock Data
     const MOCK_LEADERBOARD = [
@@ -1164,45 +963,155 @@
     }
 
     // App State
-    let markets = [...INITIAL_MARKETS];
+    let markets = [];
     let activeCategory = 'all';
     let searchQuery = '';
-    let sortMethod = 'volume';
+    let sortMethod = 'newest';
     let userBalance = 1000;
     let userPositions = [];
+    let currentUser = 'Jules Moreau';
 
     // Current bet drawer state
     let currentDrawerMarket = null;
     let currentDrawerOutcome = 'YES';
 
     // Initialize on load
-    document.addEventListener('DOMContentLoaded', () => {
-      loadState();
+    
+    window.supabaseClient = null;
+    window.currentUserId = null;
+    
+    window.initAppFromSupabase = async function(supabase, session) {
+      window.supabaseClient = supabase;
+      window.currentUserId = session.user.id;
+      currentUser = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+      
+      await loadState();
+      checkDailyBonus();
       renderMarkets();
       renderPositionsBadge();
       lucide.createIcons();
-    });
+      document.body.style.opacity = '1';
+      document.body.style.pointerEvents = 'auto';
+    };
 
-    // Local Storage helpers
-    function saveState() {
-      localStorage.setItem('isamarket_balance', userBalance.toString());
-      localStorage.setItem('isamarket_positions', JSON.stringify(userPositions));
+    function checkDailyBonus() {
+      const lastBonus = localStorage.getItem('isamarket_last_daily_bonus');
+      const now = Date.now();
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+      if (!lastBonus || now - parseInt(lastBonus) > ONE_DAY_MS) {
+        userBalance += 100;
+        localStorage.setItem('isamarket_last_daily_bonus', now.toString());
+        saveState();
+        updateBalanceUI();
+        
+        // Show confetti and toast
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#00f59b', '#ffffff', '#ffb703']
+          });
+        }
+        showToast('🎁 Daily Bonus!', '+100 Squid for logging in today!');
+      }
     }
 
-    function loadState() {
-      const savedBalance = localStorage.getItem('isamarket_balance');
-      if (savedBalance !== null) {
-        userBalance = parseInt(savedBalance, 10);
+    // Local Storage helpers
+    async function saveState() {
+      if (window.supabaseClient && window.currentUserId) {
+         // Balance is updated via bets or daily bonus.
+         await window.supabaseClient.from('profiles').update({ balance: userBalance }).eq('id', window.currentUserId);
+      } else {
+        localStorage.setItem('isamarket_balance', userBalance.toString());
+        localStorage.setItem('isamarket_positions', JSON.stringify(userPositions));
+        localStorage.setItem('isamarket_current_user', currentUser);
+        const customMarkets = markets.filter(m => m.isCustom);
+        localStorage.setItem('isamarket_custom_markets', JSON.stringify(customMarkets));
       }
-      const savedPositions = localStorage.getItem('isamarket_positions');
-      if (savedPositions) {
+    }
+    
+    async function loadState() {
+      if (window.supabaseClient && window.currentUserId) {
         try {
-          userPositions = JSON.parse(savedPositions);
-        } catch (e) {
-          userPositions = [];
+          // Load Profile (Balance)
+          const { data: profile } = await window.supabaseClient.from('profiles').select('balance').eq('id', window.currentUserId).single();
+          if (profile) userBalance = profile.balance;
+          
+          // Load Custom Markets
+          const { data: customMarkets } = await window.supabaseClient.from('markets').select('*').order('created_at', { ascending: false });
+          if (customMarkets) {
+            const mappedCustom = customMarkets.map(m => ({
+              ...m,
+              isCustom: true,
+              categoryName: m.category_name,
+              endDate: m.end_date,
+              options: m.options || []
+            }));
+            markets = mappedCustom;
+          }
+
+          // Load Positions
+          const { data: pos } = await window.supabaseClient.from('positions').select('*').eq('user_id', window.currentUserId).order('created_at', { ascending: false });
+          if (pos) {
+            userPositions = pos.map(p => ({
+              id: p.id,
+              marketId: p.market_id,
+              marketTitle: p.market_title,
+              outcome: p.outcome,
+              stake: p.stake,
+              payout: p.payout
+            }));
+          }
+        } catch (e) { console.error('Error loading state from Supabase', e); }
+      } else {
+        // Fallback Local Storage logic
+        const savedBalance = localStorage.getItem('isamarket_balance');
+        if (savedBalance !== null) userBalance = parseInt(savedBalance, 10);
+        
+        const savedPositions = localStorage.getItem('isamarket_positions');
+        if (savedPositions) {
+          try { userPositions = JSON.parse(savedPositions); } catch (e) { userPositions = []; }
+        }
+        
+        const savedUser = localStorage.getItem('isamarket_current_user');
+        if (savedUser) currentUser = savedUser;
+        
+        const savedMarkets = localStorage.getItem('isamarket_custom_markets');
+        if (savedMarkets) {
+          try {
+            const customMarkets = JSON.parse(savedMarkets);
+            markets = customMarkets;
+          } catch (e) {}
         }
       }
+      
+      updateUserUI();
       updateBalanceUI();
+    }
+    
+    function updateUserUI() {
+      const initials = currentUser.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const initialsEl = document.getElementById('profile-initials');
+      if (initialsEl) initialsEl.textContent = initials;
+      
+      const nameEl = document.getElementById('profile-name');
+      if (nameEl) nameEl.textContent = currentUser;
+      
+      const dropdownNameEl = document.getElementById('dropdown-name');
+      if (dropdownNameEl) dropdownNameEl.textContent = currentUser;
+    }
+
+    function promptChangeUser() {
+      const newName = prompt("Enter your name to switch profiles:", currentUser);
+      if (newName && newName.trim() !== "") {
+        currentUser = newName.trim();
+        saveState();
+        updateUserUI();
+        renderMarkets(); // re-render to apply excluded logic
+        showToast('Profile Changed', `Logged in as ${currentUser}`);
+      }
     }
 
     function updateBalanceUI() {
@@ -1263,24 +1172,31 @@
           m.title.toLowerCase().includes(searchQuery) || 
           m.categoryName.toLowerCase().includes(searchQuery) ||
           m.description.toLowerCase().includes(searchQuery);
-        return matchesCat && matchesSearch;
+          
+        const isExcluded = m.excludedUsers && m.excludedUsers.map(u => u.trim().toLowerCase()).includes(currentUser.trim().toLowerCase());
+        
+        return matchesCat && matchesSearch && !isExcluded;
       });
 
       // Sort with European Odds logic
-      if (sortMethod === 'volume') {
-        filtered.sort((a, b) => b.volume - a.volume);
-      } else if (sortMethod === 'odds') {
-        // Highest underdog decimal odds
-        filtered.sort((a, b) => {
+      filtered.sort((a, b) => {
+        // Always push resolved to bottom
+        if (a.status === 'resolved' && b.status !== 'resolved') return 1;
+        if (b.status === 'resolved' && a.status !== 'resolved') return -1;
+        
+        if (sortMethod === 'volume') {
+          return b.volume - a.volume;
+        } else if (sortMethod === 'odds') {
           const maxOddsA = Math.max(1 / a.yesProb, 1 / a.noProb);
           const maxOddsB = Math.max(1 / b.yesProb, 1 / b.noProb);
           return maxOddsB - maxOddsA;
-        });
-      } else if (sortMethod === 'chance') {
-        filtered.sort((a, b) => b.yesProb - a.yesProb);
-      } else if (sortMethod === 'newest') {
-        filtered.sort((a, b) => b.id - a.id);
-      }
+        } else if (sortMethod === 'chance') {
+          return b.yesProb - a.yesProb;
+        } else if (sortMethod === 'newest') {
+          return b.id - a.id;
+        }
+        return 0;
+      });
 
       document.getElementById('market-count-badge').textContent = `${filtered.length} MARKETS`;
 
@@ -1292,17 +1208,89 @@
         emptyState.classList.add('hidden');
       }
 
+      const newestCustomMarket = filtered.filter(m => m.isCustom && m.status !== 'resolved').sort((a,b) => b.id - a.id)[0];
+
       container.innerHTML = filtered.map(m => {
-        const yesOdds = toDecimalOdds(m.yesProb);
-        const noOdds = toDecimalOdds(m.noProb);
-        const yesPercent = Math.round(m.yesProb * 100);
-        const noPercent = Math.round(m.noProb * 100);
-        const yesLabel = m.yesLabel || 'Yes';
-        const noLabel = m.noLabel || 'No';
+        const isFeatured = newestCustomMarket && m.id === newestCustomMarket.id;
+        let isClosed = m.status === 'resolved';
+        let closedBadge = '';
+        if (m.status === 'resolved') {
+          closedBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-display font-bold uppercase bg-squid text-white absolute -top-2 -right-2 rotate-12 shadow-lg">RESOLVED</span>`;
+        } else if (m.isCustom && m.endDate) {
+          const dt = new Date(m.endDate);
+          if (dt < new Date()) {
+            isClosed = true;
+            closedBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-display font-bold uppercase bg-squid text-white absolute -top-2 -right-2 rotate-12 shadow-lg">CLOSED</span>`;
+          }
+        }
+
+        let marketOptions = [];
+        if (m.options && m.options.length > 0) {
+          marketOptions = m.options;
+        } else {
+          marketOptions = [
+            { label: m.yesLabel || 'Yes', prob: m.yesProb, isVolt: true },
+            { label: m.noLabel || 'No', prob: m.noProb, isSquid: true }
+          ];
+        }
+
+        const colorClasses = [
+          { text: 'text-volt', bg: 'bg-volt', bgHover: 'hover:bg-volt/25', borderHover: 'hover:border-volt', bgLight: 'bg-volt/10', border: 'border-volt/40' },
+          { text: 'text-squid', bg: 'bg-squid', bgHover: 'hover:bg-squid/25', borderHover: 'hover:border-squid', bgLight: 'bg-squid/10', border: 'border-squid/40' },
+          { text: 'text-blue-400', bg: 'bg-blue-400', bgHover: 'hover:bg-blue-400/25', borderHover: 'hover:border-blue-400', bgLight: 'bg-blue-400/10', border: 'border-blue-400/40' },
+          { text: 'text-yellow-400', bg: 'bg-yellow-400', bgHover: 'hover:bg-yellow-400/25', borderHover: 'hover:border-yellow-400', bgLight: 'bg-yellow-400/10', border: 'border-yellow-400/40' },
+          { text: 'text-purple-400', bg: 'bg-purple-400', bgHover: 'hover:bg-purple-400/25', borderHover: 'hover:border-purple-400', bgLight: 'bg-purple-400/10', border: 'border-purple-400/40' }
+        ];
+
+        const labelsHTML = marketOptions.map((opt, i) => {
+          let c = colorClasses[i % colorClasses.length];
+          if (opt.isVolt) c = colorClasses[0];
+          if (opt.isSquid) c = colorClasses[1];
+          return `<span class="${c.text} font-bold">${opt.label} (${Math.round(opt.prob * 100)}%)</span>`;
+        }).join(' <span class="text-slate-600">|</span> ');
+
+        const gaugeBarsHTML = marketOptions.map((opt, i) => {
+          let c = colorClasses[i % colorClasses.length];
+          if (opt.isVolt) c = colorClasses[0];
+          if (opt.isSquid) c = colorClasses[1];
+          return `<div class="${c.bg} h-full transition-all duration-300" style="width: ${Math.round(opt.prob * 100)}%;"></div>`;
+        }).join('');
+
+        const gridCols = marketOptions.length > 2 ? (marketOptions.length === 3 ? 'grid-cols-3' : 'grid-cols-2') : 'grid-cols-2';
+        
+        const buttonsHTML = marketOptions.map((opt, i) => {
+          let c = colorClasses[i % colorClasses.length];
+          if (opt.isVolt) c = colorClasses[0];
+          if (opt.isSquid) c = colorClasses[1];
+          const odds = toDecimalOdds(opt.prob);
+          const safeLabel = opt.label.replace(/'/g, "\\'");
+          
+          const clickAttr = isClosed ? 'disabled' : 'onclick="openBetModal(' + m.id + ', &quot;' + safeLabel.replace(/"/g, '&quot;') + '&quot;)"';
+          
+          return `
+            <button 
+              ${clickAttr}
+              class="flex items-center justify-between px-3 py-2.5 rounded ${c.bgLight} ${isClosed ? 'opacity-50 cursor-not-allowed' : c.bgHover + ' ' + c.borderHover + ' group cursor-pointer'} border-2 ${c.border} ${c.text} font-display uppercase tracking-wider text-xs font-black transition"
+            >
+              <span class="truncate mr-2 max-w-[80px]" title="${opt.label}">${opt.label}</span>
+              <span class="font-teko text-xl font-black text-white group-hover:${c.text} transition leading-none">${odds}</span>
+            </button>
+          `;
+        }).join('');
+
+        const safeFirstLabel = marketOptions[0].label.replace(/'/g, "\\'");
+
+        const slipClickAttr = 'onclick="openBetModal(' + m.id + ', &quot;' + safeFirstLabel.replace(/"/g, '&quot;') + '&quot;)"';
+        
+        let resolveButton = '';
+        if (m.creator_id && window.currentUserId === m.creator_id && m.status === 'open') {
+          resolveButton = `<button onclick="resolveMarket('${m.id}')" class="text-xs font-bold text-squid hover:text-white bg-squid/20 px-2 py-1 rounded transition mr-2">CLÔTURER</button>`;
+        }
 
         return `
-          <div class="sport-card bg-pitch-900 border-2 border-pitch-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
-            
+          <div class="sport-card relative bg-pitch-900 border-2 ${isFeatured ? 'border-squid shadow-[0_0_15px_rgba(255,42,85,0.3)]' : 'border-pitch-800'} rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-4 ${isClosed ? 'opacity-80 grayscale-[50%]' : ''} ${isFeatured ? 'col-span-full md:col-span-2 lg:col-span-2' : ''}">
+            ${isFeatured ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-squid text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg z-10 animate-pulse">🚨 NOUVEAU PARI</div>' : ''}
+            ${closedBadge}
             <!-- Card Header & Match Tag -->
             <div class="space-y-3">
               <div class="flex items-center justify-between text-xs">
@@ -1319,7 +1307,7 @@
                 <div class="w-12 h-12 rounded bg-pitch-850 border border-pitch-700 p-0.5 shrink-0 flex items-center justify-center overflow-hidden shadow">
                   <img src="${m.image}" alt="${m.title}" class="w-full h-full object-cover rounded" onerror="this.src='assets/logo.png'">
                 </div>
-                <h3 class="font-display font-bold text-base uppercase tracking-tight text-white leading-snug hover:text-volt transition cursor-pointer" onclick="openBetModal(${m.id}, 'YES')">
+                <h3 class="font-display font-bold text-base uppercase tracking-tight text-white leading-snug hover:text-volt transition cursor-pointer" ${isClosed ? '' : slipClickAttr}>
                   ${m.title}
                 </h3>
               </div>
@@ -1327,35 +1315,19 @@
 
             <!-- European Odds Display Grid -->
             <div class="space-y-2">
-              <div class="flex items-center justify-between text-[11px] font-display uppercase tracking-wider text-slate-400">
-                <span class="text-volt font-bold">${yesLabel} (${yesPercent}%)</span>
-                <span class="text-squid font-bold">${noLabel} (${noPercent}%)</span>
+              <div class="flex items-center justify-between text-[11px] font-display uppercase tracking-wider text-slate-400 flex-wrap gap-x-2">
+                ${labelsHTML}
               </div>
               
               <!-- Stadium Gauge Bar -->
               <div class="h-2 w-full bg-pitch-950 rounded-sm overflow-hidden flex border border-pitch-800">
-                <div class="bg-volt h-full transition-all duration-300" style="width: ${yesPercent}%;"></div>
-                <div class="bg-squid h-full transition-all duration-300" style="width: ${noPercent}%;"></div>
+                ${gaugeBarsHTML}
               </div>
             </div>
 
             <!-- Sportsbook European Odds Buttons -->
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <button 
-                onclick="openBetModal(${m.id}, 'YES')"
-                class="flex items-center justify-between px-3 py-2.5 rounded bg-volt/10 hover:bg-volt/25 border-2 border-volt/40 hover:border-volt text-volt font-display uppercase tracking-wider text-xs font-black transition group"
-              >
-                <span>${yesLabel}</span>
-                <span class="font-teko text-xl font-black text-white group-hover:text-volt transition leading-none">${yesOdds}</span>
-              </button>
-
-              <button 
-                onclick="openBetModal(${m.id}, 'NO')"
-                class="flex items-center justify-between px-3 py-2.5 rounded bg-squid/10 hover:bg-squid/25 border-2 border-squid/40 hover:border-squid text-squid font-display uppercase tracking-wider text-xs font-black transition group"
-              >
-                <span>${noLabel}</span>
-                <span class="font-teko text-xl font-black text-white group-hover:text-squid transition leading-none">${noOdds}</span>
-              </button>
+            <div class="grid ${gridCols} gap-2 pt-1">
+              ${buttonsHTML}
             </div>
 
             <!-- Footer metrics -->
@@ -1364,7 +1336,8 @@
                 <span>🦑</span> <strong class="text-white">${m.volume.toLocaleString()}</strong> SQUID STAKED
               </span>
               <div class="flex items-center gap-2">
-                <button onclick="openBetModal(${m.id}, 'YES')" class="hover:text-volt transition" title="Open Bet Slip">
+                ${resolveButton}
+                <button ${slipClickAttr} class="hover:text-volt transition" title="Open Bet Slip">
                   <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
                 </button>
                 <button onclick="showToast('Odds Link Copied', 'Proposition link copied to clipboard!')" class="hover:text-volt transition" title="Share Match">
@@ -1381,12 +1354,65 @@
     }
 
     // ================= OFFICIAL BET SLIP LOGIC =================
-    function openBetModal(marketId, outcome = 'YES') {
+    function getOptionsForMarket(market) {
+      if (Array.isArray(market.options) && market.options.length > 0) return market.options;
+      return [
+        { label: market.yesLabel || 'Yes', prob: market.yesProb, isVolt: true },
+        { label: market.noLabel || 'No', prob: market.noProb, isSquid: true }
+      ];
+    }
+
+    async function resolveMarket(marketId) {
+      const market = markets.find(m => m.id == marketId);
+      if (!market) return;
+      
+      const opts = getOptionsForMarket(market);
+      const optStr = opts.map((o, i) => `${i+1}. ${o.label}`).join('\n');
+      const choice = prompt(`Quel est le résultat gagnant pour "${market.title}" ?\n\nTape le numéro de l'option gagnante :\n${optStr}`);
+      
+      if (!choice) return;
+      
+      const idx = parseInt(choice) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= opts.length) {
+        alert("Choix invalide.");
+        return;
+      }
+      
+      const winningOption = opts[idx].label;
+      if (!confirm(`Confirmer que "${winningOption}" est le gagnant ? L'argent sera distribué aux gagnants.`)) return;
+      
+      if (window.supabaseClient) {
+        // Update market status
+        await window.supabaseClient.from('markets').update({ status: 'resolved', winning_option: winningOption }).eq('id', market.id);
+        
+        // Payout winners
+        const { data: winningBets } = await window.supabaseClient.from('positions').select('*').eq('market_id', market.id).eq('outcome', winningOption);
+        if (winningBets && winningBets.length > 0) {
+           for (const bet of winningBets) {
+             const { data: profile } = await window.supabaseClient.from('profiles').select('balance').eq('id', bet.user_id).single();
+             if (profile) {
+                await window.supabaseClient.from('profiles').update({ balance: profile.balance + bet.payout }).eq('id', bet.user_id);
+             }
+           }
+        }
+        showToast('Pari Clôturé !', `Les gains pour "${winningOption}" ont été distribués.`);
+        await loadState();
+        renderMarkets();
+      } else {
+        alert("Supabase n'est pas configuré. Résolution locale ignorée.");
+      }
+    }
+
+    function openBetModal(marketId, outcomeLabel) {
       const market = markets.find(m => m.id === marketId);
       if (!market) return;
 
       currentDrawerMarket = market;
-      currentDrawerOutcome = outcome;
+      
+      const opts = getOptionsForMarket(market);
+      // Determine selected outcome or fallback to the first one
+      const outcomeMatch = opts.find(o => o.label === outcomeLabel);
+      currentDrawerOutcome = outcomeMatch ? outcomeMatch.label : opts[0].label;
 
       // Unique ticket ref code
       document.getElementById('slip-ref-code').textContent = `#IS-${market.id}${Math.floor(100 + Math.random() * 900)}`;
@@ -1395,20 +1421,37 @@
       document.getElementById('drawer-market-category').textContent = `${market.icon} ${market.tag || market.categoryName}`;
       document.getElementById('drawer-market-end').textContent = market.endDate;
       
-      const yesOdds = toDecimalOdds(market.yesProb);
-      const noOdds = toDecimalOdds(market.noProb);
+      // Render dynamic outcome buttons
+      const container = document.getElementById('drawer-outcomes-container');
+      container.className = `grid gap-2 bg-pitch-950 p-1.5 rounded border border-pitch-800 ${opts.length > 2 ? (opts.length === 3 ? 'grid-cols-3' : 'grid-cols-2') : 'grid-cols-2'}`;
+      
+      const colorClasses = [
+        { text: 'text-volt', bg: 'bg-volt', bgLight: 'bg-volt/10' },
+        { text: 'text-squid', bg: 'bg-squid', bgLight: 'bg-squid/10' },
+        { text: 'text-blue-400', bg: 'bg-blue-400', bgLight: 'bg-blue-400/10' },
+        { text: 'text-yellow-400', bg: 'bg-yellow-400', bgLight: 'bg-yellow-400/10' }
+      ];
 
-      document.getElementById('drawer-yes-odds').textContent = yesOdds;
-      document.getElementById('drawer-no-odds').textContent = noOdds;
+      container.innerHTML = opts.map((opt, i) => {
+        let c = colorClasses[i % colorClasses.length];
+        if (opt.isVolt) c = colorClasses[0];
+        if (opt.isSquid) c = colorClasses[1];
+        const odds = toDecimalOdds(opt.prob);
+        const safeLabel = opt.label.replace(/'/g, "\\'");
+        return `
+          <button 
+            id="drawer-outcome-btn-${i}"
+            onclick="selectDrawerOutcome('${safeLabel}')" 
+            class="py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition"
+          >
+            <span class="leading-none max-w-[80px] truncate" title="${opt.label}">${opt.label}</span>
+            <span class="font-teko text-2xl font-black leading-none">${odds}</span>
+          </button>
+        `;
+      }).join('');
 
-      const yesLabelEl = document.getElementById('drawer-outcome-yes-label');
-      const noLabelEl = document.getElementById('drawer-outcome-no-label');
-      if (yesLabelEl) yesLabelEl.textContent = market.yesLabel || 'Yes';
-      if (noLabelEl) noLabelEl.textContent = market.noLabel || 'No';
-
-      selectDrawerOutcome(outcome);
-      calculateTradeSummary();
-
+      selectDrawerOutcome(currentDrawerOutcome);
+      
       document.getElementById('trade-drawer').classList.remove('hidden');
       lucide.createIcons();
     }
@@ -1417,21 +1460,33 @@
       document.getElementById('trade-drawer').classList.add('hidden');
     }
 
-    function selectDrawerOutcome(outcome) {
-      currentDrawerOutcome = outcome;
-      const yesBtn = document.getElementById('drawer-outcome-yes');
-      const noBtn = document.getElementById('drawer-outcome-no');
+    function selectDrawerOutcome(outcomeLabel) {
+      if (!currentDrawerMarket) return;
+      currentDrawerOutcome = outcomeLabel;
+      const opts = getOptionsForMarket(currentDrawerMarket);
       const submitBtn = document.getElementById('btn-submit-order');
 
-      if (outcome === 'YES') {
-        yesBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-black flex flex-col items-center justify-center gap-0.5 transition bg-volt text-pitch-950 shadow-md border-2 border-volt';
-        noBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition bg-pitch-900 text-slate-400 hover:text-white border-2 border-transparent';
-        submitBtn.className = 'w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider text-pitch-950 shadow-xl transition flex items-center justify-center gap-2 bg-volt hover:bg-volt-400';
-      } else {
-        noBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-black flex flex-col items-center justify-center gap-0.5 transition bg-squid text-white shadow-md border-2 border-squid';
-        yesBtn.className = 'py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition bg-pitch-900 text-slate-400 hover:text-white border-2 border-transparent';
-        submitBtn.className = 'w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider text-white shadow-xl transition flex items-center justify-center gap-2 bg-squid hover:bg-squid-600';
-      }
+      const colorClasses = [
+        { border: 'border-volt', bg: 'bg-volt', bgLight: 'bg-volt/10', text: 'text-pitch-950', submitBg: 'bg-volt hover:bg-volt-400', textActive: 'text-pitch-950' },
+        { border: 'border-squid', bg: 'bg-squid', bgLight: 'bg-squid/10', text: 'text-white', submitBg: 'bg-squid hover:bg-squid-600', textActive: 'text-white' },
+        { border: 'border-blue-400', bg: 'bg-blue-400', bgLight: 'bg-blue-400/10', text: 'text-pitch-950', submitBg: 'bg-blue-400 hover:bg-blue-500', textActive: 'text-pitch-950' },
+        { border: 'border-yellow-400', bg: 'bg-yellow-400', bgLight: 'bg-yellow-400/10', text: 'text-pitch-950', submitBg: 'bg-yellow-400 hover:bg-yellow-500', textActive: 'text-pitch-950' }
+      ];
+
+      opts.forEach((opt, i) => {
+        const btn = document.getElementById(`drawer-outcome-btn-${i}`);
+        if (!btn) return;
+        let c = colorClasses[i % colorClasses.length];
+        if (opt.isVolt) c = colorClasses[0];
+        if (opt.isSquid) c = colorClasses[1];
+
+        if (opt.label === outcomeLabel) {
+          btn.className = `py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-black flex flex-col items-center justify-center gap-0.5 transition ${c.bg} ${c.textActive} shadow-md border-2 ${c.border}`;
+          submitBtn.className = `w-full py-3.5 rounded font-display font-black text-sm uppercase tracking-wider ${c.textActive} shadow-xl transition flex items-center justify-center gap-2 ${c.submitBg}`;
+        } else {
+          btn.className = `py-2.5 px-3 rounded font-display uppercase tracking-wider text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition bg-pitch-900 text-slate-400 hover:text-white border-2 border-transparent`;
+        }
+      });
 
       calculateTradeSummary();
     }
@@ -1453,10 +1508,11 @@
       let stake = parseFloat(amountInput.value) || 0;
       if (stake < 0) stake = 0;
 
-      const prob = currentDrawerOutcome === 'YES' ? currentDrawerMarket.yesProb : currentDrawerMarket.noProb;
+      const opts = getOptionsForMarket(currentDrawerMarket);
+      const opt = opts.find(o => o.label === currentDrawerOutcome) || opts[0];
+      const prob = opt.prob;
       const decimalOdds = parseFloat(toDecimalOdds(prob));
       
-      // Sportsbook European Odds calculation:
       const totalPayout = stake * decimalOdds;
       const netProfit = totalPayout - stake;
       const roi = stake > 0 ? ((decimalOdds - 1) * 100) : 0;
@@ -1478,23 +1534,23 @@
       } else {
         submitBtn.disabled = false;
         submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        const outcomeLabel = currentDrawerOutcome === 'YES' ? (currentDrawerMarket.yesLabel || 'Yes') : (currentDrawerMarket.noLabel || 'No');
-        submitBtn.innerHTML = `<span>LOCK IN ${outcomeLabel} @ ${decimalOdds.toFixed(2)} (${stake} 🦑)</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+        submitBtn.innerHTML = `<span>LOCK IN ${opt.label} @ ${decimalOdds.toFixed(2)} (${stake} 🦑)</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>`;
         lucide.createIcons();
       }
     }
 
-    function executeTrade() {
+    async function executeTrade() {
       if (!currentDrawerMarket) return;
       
       const stake = parseFloat(document.getElementById('bet-amount').value) || 0;
       if (stake <= 0 || stake > userBalance) return;
 
-      const prob = currentDrawerOutcome === 'YES' ? currentDrawerMarket.yesProb : currentDrawerMarket.noProb;
-      const decimalOdds = parseFloat(toDecimalOdds(prob));
+      const opts = getOptionsForMarket(currentDrawerMarket);
+      const opt = opts.find(o => o.label === currentDrawerOutcome) || opts[0];
+      const outcomeLabel = opt.label;
+      const decimalOdds = parseFloat(toDecimalOdds(opt.prob));
       const totalPayout = stake * decimalOdds;
       const netProfit = totalPayout - stake;
-      const outcomeLabel = currentDrawerOutcome === 'YES' ? (currentDrawerMarket.yesLabel || 'Yes') : (currentDrawerMarket.noLabel || 'No');
 
       // Deduct bankroll
       userBalance -= stake;
@@ -1502,31 +1558,45 @@
       // Update market volume
       currentDrawerMarket.volume += stake;
 
-      // Add to user active bets
-      userPositions.unshift({
-        id: Date.now(),
-        marketId: currentDrawerMarket.id,
-        marketTitle: currentDrawerMarket.title,
+      const newPosition = {
+        user_id: window.currentUserId || null,
+        market_id: currentDrawerMarket.id,
+        market_title: currentDrawerMarket.title,
         outcome: outcomeLabel,
         stake: stake,
-        decimalOdds: decimalOdds,
-        payout: totalPayout,
-        netProfit: netProfit,
-        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
+        payout: totalPayout
+      };
 
-      saveState();
+      if (window.supabaseClient && window.currentUserId) {
+        // Insert position
+        await window.supabaseClient.from('positions').insert(newPosition);
+        // Update user balance
+        await window.supabaseClient.from('profiles').update({ balance: userBalance }).eq('id', window.currentUserId);
+        // Update market volume (skip for initial hardcoded markets as they don't exist in DB)
+        if (currentDrawerMarket.isCustom) {
+           await window.supabaseClient.from('markets').update({ volume: currentDrawerMarket.volume }).eq('id', currentDrawerMarket.id);
+        }
+        await loadState(); // reload to get new positions from DB
+      } else {
+        newPosition.id = Date.now();
+        newPosition.marketId = currentDrawerMarket.id;
+        newPosition.marketTitle = currentDrawerMarket.title;
+        userPositions.unshift(newPosition);
+        saveState();
+      }
+
       updateBalanceUI();
-      renderMarkets();
       renderPositionsBadge();
-
-      // Confetti feedback
-      confetti({
-        particleCount: 50,
-        spread: 65,
-        origin: { y: 0.8 },
-        colors: ['#00f59b', '#ff2a6d', '#ffffff']
-      });
+      
+      // Confetti
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#00f59b', '#ffffff']
+        });
+      }
 
       closeTradeDrawer();
       showToast('🎉 Bet Confirmed!', `Placed ${stake} 🦑 on ${outcomeLabel} @ ${decimalOdds.toFixed(2)} (Payout: ${totalPayout.toFixed(1)} 🦑)`);
@@ -1583,17 +1653,19 @@
       }
 
       container.innerHTML = userPositions.map(p => {
+        const decimalOdds = p.stake > 0 ? (p.payout / p.stake) : 1.0;
+        const netProfit = p.payout - p.stake;
         return `
           <div class="p-3.5 bg-pitch-950 border border-pitch-800 rounded-lg space-y-2">
             <div class="flex items-start justify-between gap-2">
               <h5 class="text-xs font-bold text-white leading-snug">${p.marketTitle}</h5>
               <span class="shrink-0 px-2 py-0.5 rounded text-[10px] font-display font-black uppercase tracking-wider bg-volt/20 text-volt border border-volt/30">
-                ${p.outcome} @ ${p.decimalOdds.toFixed(2)}
+                ${p.outcome} @ ${decimalOdds.toFixed(2)}
               </span>
             </div>
             <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-pitch-800 font-mono">
               <span>Stake: <strong class="text-white">${p.stake} 🦑</strong></span>
-              <span class="text-volt font-bold">Max Return: ${p.payout.toFixed(1)} 🦑 (+${p.netProfit.toFixed(1)} 🦑)</span>
+              <span class="text-volt font-bold">Max Return: ${(p.payout||0).toFixed(1)} 🦑 (+${netProfit.toFixed(1)} 🦑)</span>
             </div>
           </div>
         `;
@@ -1670,6 +1742,130 @@
       document.getElementById('leaderboard-modal').classList.add('hidden');
     }
 
+    // ================= CREATE MARKET MODAL =================
+    function openCreateMarketModal() {
+      document.getElementById('create-market-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCreateMarketModal() {
+      document.getElementById('create-market-modal').classList.add('hidden');
+    }
+
+    function handleProbInput(input) {
+      const list = document.getElementById('new-market-options-list');
+      const rows = list.querySelectorAll('.market-option-row');
+      if (rows.length === 2) {
+        const inputs = list.querySelectorAll('.option-prob');
+        const otherInput = (inputs[0] === input) ? inputs[1] : inputs[0];
+        const val = parseInt(input.value) || 0;
+        if (val >= 1 && val <= 99) {
+          otherInput.value = 100 - val;
+        }
+      }
+    }
+
+    function addMarketOption() {
+      const list = document.getElementById('new-market-options-list');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2 market-option-row mt-2';
+      div.innerHTML = `
+        <input type="text" placeholder="Option Name" class="w-2/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-label">
+        <input type="number" placeholder="%" value="10" min="1" max="99" class="w-1/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-prob" oninput="handleProbInput(this)">
+        <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 p-1">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      `;
+      list.appendChild(div);
+      lucide.createIcons();
+    }
+
+    async function saveNewMarket() {
+      const title = document.getElementById('new-market-title').value.trim();
+      const desc = document.getElementById('new-market-desc').value.trim();
+      const category = document.getElementById('new-market-category').value;
+      const endTime = document.getElementById('new-market-time').value;
+      const excludedInput = document.getElementById('new-market-excluded').value;
+
+      if (!title || !desc || !endTime) {
+        alert("Please fill out Title, Description, and Voting End Time.");
+        return;
+      }
+
+      const optionRows = document.querySelectorAll('.market-option-row');
+      let options = [];
+      let totalProb = 0;
+      optionRows.forEach(row => {
+        const label = row.querySelector('.option-label').value.trim();
+        const prob = parseInt(row.querySelector('.option-prob').value) || 0;
+        if (label) {
+          options.push({ label, prob: prob / 100 });
+          totalProb += prob;
+        }
+      });
+      
+      if (options.length < 2) {
+        alert("Please provide at least 2 options.");
+        return;
+      }
+      
+      if (totalProb > 0 && totalProb !== 100) {
+        alert('Le total des probabilités doit être exactement de 100% ! Vous avez mis ' + totalProb + '%');
+        return;
+      }
+
+      const excludedUsers = excludedInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      
+      const newMarket = {
+        creator_id: window.currentUserId || null,
+        title: title,
+        description: desc,
+        category: category,
+        category_name: category === 'isa' ? 'ISA & Campus' : category === 'football' ? 'Football' : category === 'basketball' ? 'Basketball' : category === 'olympics' ? 'Global Sports' : 'Student Life',
+        icon: category === 'football' ? '⚽' : category === 'basketball' ? '🏀' : category === 'olympics' ? '🏆' : '🎓',
+        image: 'assets/logo.png',
+        end_date: new Date(endTime).toLocaleString(),
+        status: 'open',
+        options: options,
+        excluded_users: excludedUsers
+      };
+
+      if (window.supabaseClient && window.currentUserId) {
+        const { error } = await window.supabaseClient.from('markets').insert(newMarket);
+        if (error) {
+          alert('Error creating market: ' + error.message);
+          return;
+        }
+        await loadState(); // Reload from DB
+      } else {
+        newMarket.id = Date.now();
+        newMarket.isCustom = true;
+        markets.unshift(newMarket);
+        saveState();
+      }
+
+      renderMarkets();
+      closeCreateMarketModal();
+
+      // Reset form
+      document.getElementById('new-market-title').value = '';
+      document.getElementById('new-market-desc').value = '';
+      document.getElementById('new-market-time').value = '';
+      document.getElementById('new-market-excluded').value = '';
+      document.getElementById('new-market-options-list').innerHTML = `
+        <div class="flex gap-2 market-option-row">
+          <input type="text" placeholder="e.g. Yes, Win" value="Yes" class="w-2/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-label">
+          <input type="number" placeholder="%" value="50" min="1" max="99" class="w-1/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-prob" oninput="handleProbInput(this)">
+        </div>
+        <div class="flex gap-2 market-option-row">
+          <input type="text" placeholder="e.g. No, Lose" value="No" class="w-2/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-label">
+          <input type="number" placeholder="%" value="50" min="1" max="99" class="w-1/3 px-3 py-1.5 bg-pitch-950 border border-pitch-800 rounded text-white text-xs focus:outline-none focus:border-volt option-prob" oninput="handleProbInput(this)">
+        </div>
+      `;
+
+      showToast('Market Created!', 'Your custom proposition is now live.');
+    }
+
     // ================= HOW IT WORKS MODAL =================
     function openRulesModal() {
       document.getElementById('rules-modal').classList.remove('hidden');
@@ -1714,6 +1910,30 @@
       setTimeout(() => {
         toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
       }, 3500);
+    }
+  </script>
+  
+  <script type="module">
+    import { supabase, isSupabaseConfigured } from './src/lib/supabase.js';
+
+    if (isSupabaseConfigured) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.href = './auth.html';
+        } else {
+          if (window.initAppFromSupabase) {
+            window.initAppFromSupabase(supabase, session);
+          }
+        }
+      });
+
+      window.supabaseLogOut = async function() {
+        await supabase.auth.signOut();
+        window.location.href = './auth.html';
+      };
+    } else {
+      console.error("Supabase not configured! Redirecting to auth.");
+      window.location.href = './auth.html';
     }
   </script>
 </body>
