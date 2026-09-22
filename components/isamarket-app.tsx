@@ -67,10 +67,6 @@ type OddPoint = {
   id: number; subject_id: string; yes_pool: number; no_pool: number;
   yes_odds: number | null; no_odds: number | null; created_at: string;
 };
-type Invitation = {
-  id: string; email: string | null; expires_at: string; used_by: string | null;
-  used_at: string | null; created_at: string;
-};
 type Report = {
   id: string; subject_id: string | null; reporter_id: string; reason: string;
   status: "open" | "resolved" | "dismissed"; admin_note: string | null; created_at: string;
@@ -111,7 +107,6 @@ export function IsamarketApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [booting, setBooting] = useState(true);
   const [membership, setMembership] = useState<Membership | null>(null);
-  const [needsInvite, setNeedsInvite] = useState(false);
   const [page, setPage] = useState<Page>("marches");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -119,7 +114,6 @@ export function IsamarketApp() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [wagers, setWagers] = useState<Wager[]>([]);
   const [leaders, setLeaders] = useState<Leader[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [loadingData, setLoadingData] = useState(false);
@@ -136,20 +130,13 @@ export function IsamarketApp() {
     if (error) throw error;
     if (data) {
       setMembership(data as Membership);
-      setNeedsInvite(false);
       return data as Membership;
     }
-    const invite = typeof user.user_metadata?.invitation_code === "string" ? user.user_metadata.invitation_code : null;
-    const result = await supabase.rpc("complete_registration", { p_invite_code: invite });
-    if (result.error) {
-      if (!/Invitation|invitation|adresse/.test(result.error.message)) throw result.error;
-      setNeedsInvite(true);
-      return null;
-    }
+    const result = await supabase.rpc("complete_registration");
+    if (result.error) throw result.error;
     const again = await supabase.from("memberships").select("user_id, role, status").eq("user_id", user.id).single();
     if (again.error) throw again.error;
     setMembership(again.data as Membership);
-    setNeedsInvite(false);
     return again.data as Membership;
   }, []);
 
@@ -174,19 +161,17 @@ export function IsamarketApp() {
       setSelected((current) => current ? (marketsRes.data || []).find((item) => item.id === current.id) as Market || null : null);
 
       if (role === "admin") {
-        const [membershipRes, profilesRes, walletsRes, invitationsRes, reportsRes] = await Promise.all([
+        const [membershipRes, profilesRes, walletsRes, reportsRes] = await Promise.all([
           supabase.from("memberships").select("*").order("joined_at"),
           supabase.from("profiles").select("*"),
           supabase.from("wallets").select("*"),
-          supabase.from("invitations").select("*").order("created_at", { ascending: false }),
           supabase.from("reports").select("*").order("created_at", { ascending: false }),
         ]);
-        const adminError = [membershipRes, profilesRes, walletsRes, invitationsRes, reportsRes].find((item) => item.error)?.error;
+        const adminError = [membershipRes, profilesRes, walletsRes, reportsRes].find((item) => item.error)?.error;
         if (adminError) throw adminError;
         const byProfile = new Map((profilesRes.data || []).map((item) => [item.user_id, item as Profile]));
         const byWallet = new Map((walletsRes.data || []).map((item) => [item.user_id, item as Wallet]));
         setMembers((membershipRes.data || []).map((item) => ({ ...item, profile: byProfile.get(item.user_id), wallet: byWallet.get(item.user_id) })) as MemberRow[]);
-        setInvitations((invitationsRes.data || []) as Invitation[]);
         setReports((reportsRes.data || []) as Report[]);
       }
     } catch (error) {
@@ -213,8 +198,8 @@ export function IsamarketApp() {
         setProfile(null);
         setWallet(null);
         setMarkets([]);
-        setWagers([]); setLeaders([]); setInvitations([]); setReports([]); setMembers([]);
-        setSelected(null); setCreateOpen(false); setPage("marches"); setNeedsInvite(false);
+        setWagers([]); setLeaders([]); setReports([]); setMembers([]);
+        setSelected(null); setCreateOpen(false); setPage("marches");
         setRecovering(false); setAuthError(null); setDataError(null); setBooting(false);
       }
     });
@@ -297,10 +282,7 @@ export function IsamarketApp() {
   if (authError) return <div className="mx-auto max-w-lg space-y-5 p-10"><h1 className="text-2xl font-bold">Connexion interrompue</h1><p role="alert">{authError}</p><Button onClick={() => window.location.reload()}>Réessayer</Button><Button variant="outline" onClick={() => void supabase.auth.signOut()}>Se déconnecter</Button></div>;
   if (booting) return <BootScreen />;
   if (!session) return <AuthScreen />;
-  if (needsInvite || !membership) return <InvitationGate user={session.user} onComplete={async () => {
-    const member = await loadMembership(session.user);
-    if (member) await loadData(session.user, member.role);
-  }} />;
+  if (!membership) return <BootScreen />;
   if (membership.status === "suspended") return <SuspendedScreen />;
 
   const navigation: { id: Page; label: string; icon: typeof Home }[] = [
@@ -316,7 +298,7 @@ export function IsamarketApp() {
     paris: <MyBetsPage wagers={wagers} />,
     classement: <LeaderboardPage leaders={leaders} />,
     profil: <ProfilePage user={session.user} profile={profile} wallet={wallet} wagers={wagers} onSaved={refresh} />,
-    admin: <AdminPage markets={markets} invitations={invitations} reports={reports} members={members} currentUserId={session.user.id} onChanged={refresh} />,
+    admin: <AdminPage markets={markets} reports={reports} members={members} currentUserId={session.user.id} onChanged={refresh} />,
   };
 
   return (
@@ -407,7 +389,6 @@ function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [invite, setInvite] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -417,10 +398,9 @@ function AuthScreen() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        if (!invite.trim() && email.toLowerCase() !== "tanguypavat8@gmail.com") throw new Error("Saisis le code d’invitation transmis par l’administrateur.");
         const { data, error } = await supabase.auth.signUp({
           email, password,
-          options: { data: { invitation_code: invite.trim().toUpperCase() }, emailRedirectTo: window.location.origin }
+          options: { emailRedirectTo: window.location.origin }
         });
         if (error) throw error;
         if (!data.session) toast.success("Vérifie ta boîte mail pour confirmer ton adresse.");
@@ -455,15 +435,14 @@ function AuthScreen() {
             <div className="mb-10 flex items-center gap-3 lg:hidden"><Image src="/logo.png" alt="Logo ISA" width={48} height={48} className="rounded-full" priority /><div><p className="text-lg font-black">ISAMARKET</p><p className="text-sm text-muted-foreground">Le marché privé de la promo</p></div></div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#d14f79]">Accès privé</p>
             <h2 className="mt-3 text-4xl font-black tracking-[-0.045em]">{mode === "login" ? "Rejoins le marché." : "Crée ton compte."}</h2>
-            <p className="mt-3 leading-relaxed text-muted-foreground">{mode === "login" ? "Connecte-toi avec ton adresse confirmée." : "Une invitation valide est nécessaire. Ton e-mail devra être confirmé."}</p>
+            <p className="mt-3 leading-relaxed text-muted-foreground">{mode === "login" ? "Connecte-toi avec ton adresse confirmée." : "Ton e-mail devra être confirmé avant ta première connexion."}</p>
             <form className="mt-9 space-y-5" onSubmit={submit}>
               <Field icon={<Mail />} label="Adresse e-mail"><Input aria-label="Adresse e-mail" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="prenom.nom@exemple.fr" className="h-12 pl-10" /></Field>
               <div className="space-y-2"><div className="flex justify-between"><Label htmlFor="password">Mot de passe</Label>{mode === "login" && <button type="button" onClick={() => void resetPassword()} className="text-sm font-semibold text-[#c7446d] hover:underline">Mot de passe oublié ?</button>}</div><div className="relative"><LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="8 caractères minimum" className="h-12 pl-10" /></div></div>
-              {mode === "register" && <Field icon={<ShieldCheck />} label="Code d’invitation"><Input aria-label="Code d’invitation" value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase())} placeholder="Ex. A7F29B…" className="h-12 pl-10 uppercase" /></Field>}
               <Button disabled={busy} className="h-12 w-full bg-[#142846] text-base font-bold text-white hover:bg-[#0d1d35]">{busy ? <Loader2 className="animate-spin" /> : <>{mode === "login" ? "Se connecter" : "Créer mon compte"}<ArrowRight /></>}</Button>
             </form>
             <div className="my-7 flex items-center gap-4 text-xs uppercase tracking-widest text-muted-foreground"><span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" /></div>
-            <Button variant="outline" className="h-12 w-full text-base font-bold" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Créer mon compte avec une invitation" : "J’ai déjà un compte"}</Button>
+            <Button variant="outline" className="h-12 w-full text-base font-bold" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Créer mon compte" : "J’ai déjà un compte"}</Button>
             <p className="mt-8 text-center text-sm leading-relaxed text-muted-foreground">Les Squids sont une monnaie fictive, sans achat, retrait ni conversion possible.</p>
           </div>
         </section>
@@ -474,18 +453,6 @@ function AuthScreen() {
 
 function Field({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return <div className="space-y-2"><Label>{label}</Label><div className="relative [&>svg]:pointer-events-none [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-1/2 [&>svg]:size-4 [&>svg]:-translate-y-1/2 [&>svg]:text-muted-foreground">{icon}{children}</div></div>;
-}
-
-function InvitationGate({ user, onComplete }: { user: User; onComplete: () => Promise<void> }) {
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true);
-    const { error } = await supabase.rpc("complete_registration", { p_invite_code: code.trim().toUpperCase() });
-    if (error) toast.error(message(error)); else { toast.success("Invitation acceptée. Bienvenue !"); await onComplete(); }
-    setBusy(false);
-  }
-  return <div className="flex min-h-screen items-center justify-center bg-[#f5f7fb] p-5"><Toaster richColors /><Card className="w-full max-w-md border-0 shadow-xl"><CardContent className="p-8"><Image src="/logo.png" width={64} height={64} alt="" className="rounded-full" /><h1 className="mt-6 text-3xl font-black">Invitation requise</h1><p className="mt-2 text-muted-foreground">Le compte {user.email} est confirmé, mais ne fait pas encore partie de la classe.</p><form onSubmit={submit} className="mt-7 space-y-4"><Input aria-label="Code d’invitation" required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Code d’invitation" className="h-12 uppercase" /><Button disabled={busy} className="h-12 w-full bg-[#142846] font-bold">{busy ? <Loader2 className="animate-spin" /> : "Valider l’invitation"}</Button></form><Button variant="ghost" className="mt-3 w-full" onClick={() => void supabase.auth.signOut()}>Se déconnecter</Button></CardContent></Card></div>;
 }
 
 function SuspendedScreen() {
@@ -654,19 +621,12 @@ function ProfilePage({ user, profile, wallet, wagers, onSaved }: { user: User; p
   return <><PageHeading eyebrow="Compte personnel" title="Mon profil" /><div className="grid gap-6 xl:grid-cols-[1fr_380px]"><Card><CardContent className="p-6 sm:p-8"><div className="flex items-center gap-4"><AvatarView profile={profile || undefined} className="size-20" /><div><p className="text-xl font-black">{profile?.username}</p><p className="text-sm text-muted-foreground">{user.email}</p><Badge variant="secondary" className="mt-2">E-mail vérifié</Badge></div></div><form onSubmit={save} className="mt-8 space-y-5"><div className="space-y-2"><Label htmlFor="profile-name">Pseudo</Label><Input id="profile-name" required minLength={2} maxLength={30} value={username} onChange={(e) => setUsername(e.target.value)} /></div><div className="space-y-2"><Label htmlFor="profile-avatar">URL de l’avatar (facultatif)</Label><Input id="profile-avatar" type="url" value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://…" /></div><Button className="bg-[#142846]">Enregistrer</Button></form></CardContent></Card><div className="space-y-4"><div className="rounded-2xl bg-[#142846] p-6 text-white"><WalletCards className="size-6 text-[#ed6f96]" /><p className="mt-5 text-sm text-white/60">Solde disponible</p><p className="text-4xl font-black">{squid(wallet?.balance || 0)}</p><p className="text-sm text-white/60">Squids</p></div><div className="rounded-2xl border bg-white p-6"><p className="text-sm text-muted-foreground">Squids engagés</p><p className="mt-1 text-3xl font-black">{squid(engaged)}</p><p className="mt-3 text-sm leading-relaxed text-muted-foreground">Ils restent engagés jusqu’au règlement ou au remboursement du sujet.</p></div></div></div></>;
 }
 
-function AdminPage({ markets, invitations, reports, members, currentUserId, onChanged }: { markets: Market[]; invitations: Invitation[]; reports: Report[]; members: MemberRow[]; currentUserId: string; onChanged: () => Promise<void> }) {
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
+function AdminPage({ markets, reports, members, currentUserId, onChanged }: { markets: Market[]; reports: Report[]; members: MemberRow[]; currentUserId: string; onChanged: () => Promise<void> }) {
   const [settling, setSettling] = useState<Market | null>(null);
   const [outcome, setOutcome] = useState<"yes" | "no" | "cancelled" | "close">("yes");
   const [busy, setBusy] = useState(false);
   const adminLock = useRef(false);
   const [note, setNote] = useState("");
-  async function createInvite(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (adminLock.current) return; adminLock.current = true; setBusy(true); const values = new FormData(event.currentTarget);
-    const { data, error } = await supabase.rpc("create_invitation", { p_email: values.get("email") || null, p_valid_days: Number(values.get("days") || 14) });
-    if (error) toast.error(message(error)); else { const code = data?.[0]?.invitation_code; setInviteCode(code); toast.success("Invitation créée. Copie le code maintenant."); await onChanged(); }
-    adminLock.current = false; setBusy(false);
-  }
   async function settle() {
     if (!settling || adminLock.current) return;
     adminLock.current = true; setBusy(true);
@@ -685,7 +645,6 @@ function AdminPage({ markets, invitations, reports, members, currentUserId, onCh
   }
   return <><PageHeading eyebrow="Administration" title="Piloter la classe" /><div>
     <div className="space-y-4"><h2 className="text-xl font-black">Sujets à régler</h2>{markets.filter((m) => m.status === "open").map((market) => <div key={market.id} className="flex flex-col gap-4 rounded-2xl border bg-white p-5 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="font-bold">{market.title}</p><p className="mt-1 text-sm text-muted-foreground">Clôture : {compactDate.format(new Date(market.closes_at))} · Cagnotte : {squid(market.total_pool)} S</p></div><Button variant="outline" onClick={() => setSettling(market)}>Régler</Button></div>)}</div>
-    <section className="mt-10 rounded-2xl border bg-white p-6"><h2 className="text-xl font-black">Nouvelle invitation</h2><form onSubmit={createInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_130px_auto]"><Input name="email" type="email" placeholder="E-mail réservé (facultatif)" /><Input name="days" type="number" min={1} max={90} defaultValue={14} aria-label="Validité en jours" /><Button disabled={busy} type="submit">Créer</Button></form>{inviteCode && <div className="mt-4 rounded-xl bg-[#fde7ee] p-4"><p className="text-sm font-semibold">Code à transmettre une seule fois</p><div className="mt-2 flex items-center gap-3"><code className="flex-1 text-xl font-black tracking-wider">{inviteCode}</code><Button variant="outline" onClick={() => { void navigator.clipboard.writeText(inviteCode); toast.success("Code copié."); }}>Copier</Button></div></div>}<div className="mt-5 space-y-2">{invitations.slice(0, 8).map((invite) => <div key={invite.id} className="flex items-center justify-between rounded-xl bg-[#f6f8fb] p-3 text-sm"><span>{invite.email || "Invitation libre"}</span><Badge variant={invite.used_by ? "secondary" : new Date(invite.expires_at) < new Date() ? "destructive" : "outline"}>{invite.used_by ? "Utilisée" : new Date(invite.expires_at) < new Date() ? "Expirée" : "Disponible"}</Badge></div>)}</div></section>
     <section className="mt-10 overflow-hidden rounded-2xl border bg-white"><div className="p-6"><h2 className="text-xl font-black">Membres</h2></div><Table><TableHeader><TableRow><TableHead>Membre</TableHead><TableHead>Rôle</TableHead><TableHead>Solde</TableHead><TableHead className="text-right">Accès</TableHead></TableRow></TableHeader><TableBody>{members.map((member) => <TableRow key={member.user_id}><TableCell><div className="flex items-center gap-3"><AvatarView profile={member.profile} /><span className="font-bold">{member.profile?.username || member.user_id.slice(0, 8)}</span></div></TableCell><TableCell>{member.role === "admin" ? "Admin" : "Joueur"}</TableCell><TableCell>{squid(member.wallet?.balance || 0)} S</TableCell><TableCell className="text-right"><Button size="sm" variant="outline" disabled={member.user_id === currentUserId} onClick={() => void toggleMember(member)}>{member.status === "active" ? "Suspendre" : "Réactiver"}</Button></TableCell></TableRow>)}</TableBody></Table></section>
     <section className="mt-10 space-y-3"><h2 className="text-xl font-black">Signalements</h2>{reports.filter((r) => r.status === "open").map((report) => <div key={report.id} className="rounded-2xl border bg-white p-5"><p className="font-bold">{markets.find((market) => market.id === report.subject_id)?.title || "Sujet signalé"}</p><p className="mt-2 text-sm leading-relaxed">{report.reason}</p><div className="mt-4 flex gap-2"><Button size="sm" onClick={() => void closeReport(report, "resolved")}>Traité</Button><Button size="sm" variant="outline" onClick={() => void closeReport(report, "dismissed")}>Classer sans suite</Button></div></div>)}{!reports.some((r) => r.status === "open") && <p className="rounded-xl border border-dashed bg-white p-6 text-center text-muted-foreground">Aucun signalement en attente.</p>}</section>
   </div>

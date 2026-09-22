@@ -13,7 +13,7 @@ do $$
 declare
   admin_id uuid := gen_random_uuid(); a uuid := gen_random_uuid(); b uuid := gen_random_uuid(); outsider uuid := gen_random_uuid();
   unverified uuid := gen_random_uuid(); market uuid; refund_market uuid; no_winner uuid; timed uuid;
-  invite record; receipt jsonb; retry jsonb; req uuid := gen_random_uuid(); before_total bigint; after_total bigint;
+  receipt jsonb; retry jsonb; req uuid := gen_random_uuid(); before_total bigint; after_total bigint;
 begin
   insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
     (admin_id,'tanguypavat8@gmail.com',clock_timestamp(),'{}'),
@@ -28,23 +28,19 @@ begin
   perform public.complete_registration(null);
   perform public.complete_registration(null);
   assert (select balance=1000 from public.wallets where user_id=admin_id), 'Initial grant duplicated';
-  select * into invite from public.create_invitation('qa-a@isamarket.invalid',14);
-  perform set_config('request.jwt.claim.sub',b::text,true);
-  perform pg_temp.expect_error(format('select public.complete_registration(%L)',invite.invitation_code),'autre adresse');
   perform set_config('request.jwt.claim.sub',a::text,true);
-  perform public.complete_registration(invite.invitation_code);
+  perform public.complete_registration(null);
   assert not private.is_admin(), 'Editable metadata granted admin';
   perform pg_temp.expect_error('select public.create_invitation(null,14)','administrateur');
   perform set_config('request.jwt.claim.sub',b::text,true);
-  perform pg_temp.expect_error(format('select public.complete_registration(%L)',invite.invitation_code),'invalide');
-  perform set_config('request.jwt.claim.sub',admin_id::text,true);
-  select * into invite from public.create_invitation(null,14);
-  perform set_config('request.jwt.claim.sub',b::text,true);
-  perform public.complete_registration(invite.invitation_code);
+  perform public.complete_registration(null);
   perform set_config('request.jwt.claim.sub',outsider::text,true);
   assert (select count(*)=0 from public.subjects), 'Outsider reads subjects';
   assert (select count(*)=0 from public.profiles), 'Outsider reads profiles';
-  perform pg_temp.expect_error('select public.complete_registration(null)','Invitation');
+  perform public.complete_registration(null);
+  assert private.is_active_member(), 'Confirmed user was not registered without invitation';
+  assert not private.is_admin(), 'Editable metadata granted admin';
+  perform set_config('request.jwt.claim.sub',unverified::text,true);
   perform pg_temp.expect_error('select public.create_subject(''Un sujet test ?'',''Contexte assez long pour le test.'',''Cours'',null,now()+interval ''1 day'',''Critères assez longs pour le test.'')','Membre actif');
   perform set_config('request.jwt.claim.sub',a::text,true);
   select id into market from public.create_subject('Un sujet de test ?', 'Contexte assez long pour le test.', 'Cours', null, clock_timestamp()+interval '1 day','Critères assez longs pour le test.');
@@ -109,9 +105,9 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',admin_id::text,true);
   perform pg_temp.expect_error(format('select public.place_wager(%L,''yes'',1,%L)',timed,gen_random_uuid()),'mises sont closes');
-  assert (select sum(balance)=3000 from public.wallets), 'Squid supply not conserved';
-  assert (select count(*)=3 from public.wallet_transactions where kind='initial_grant'), 'Grant count';
+  assert (select sum(balance)=4000 from public.wallets), 'Squid supply not conserved';
+  assert (select count(*)=4 from public.wallet_transactions where kind='initial_grant'), 'Grant count';
   execute 'reset role';
 end $$;
-select 'PASS: invitation, verified admin, metadata rejection, RLS, Paris quota, cancellation quota, integer amounts, overdraft, retry, odds, immutable rules, rounding, conservation, settlement replay, refunds, leaderboard, suspension, wall-clock closure' as verification;
+select 'PASS: open registration, verified email, admin, metadata rejection, RLS, Paris quota, cancellation quota, integer amounts, overdraft, retry, odds, immutable rules, rounding, conservation, settlement replay, refunds, leaderboard, suspension, wall-clock closure' as verification;
 rollback;

@@ -12,7 +12,7 @@
 
 ## Règles vérifiées dans Supabase
 
-Invitation obligatoire ; invitation réservée à un e-mail ; usage unique ; e-mail confirmé ; administrateur désigné ; refus de rôle issu des métadonnées utilisateur ; restrictions RLS ; refus des écritures directes de soldes/rôles/résultats ; dotation unique ; quota journalier Europe/Paris ; quota conservé après annulation ; mises strictement entières et positives ; solde insuffisant ; requête répétée ; cotes sans liquidité inventée ; conditions immuables ; clôture côté serveur ; arrondi aux plus grands restes ; conservation des Squids ; règlement idempotent ; remboursement sur annulation ou absence de gagnant ; classement excluant dotation et remboursements ; suspension.
+Inscription sans invitation ; e-mail confirmé ; administrateur désigné ; refus de rôle issu des métadonnées utilisateur ; restrictions RLS ; refus des écritures directes de soldes/rôles/résultats ; dotation unique ; quota journalier Europe/Paris ; quota conservé après annulation ; mises strictement entières et positives ; solde insuffisant ; requête répétée ; cotes sans liquidité inventée ; conditions immuables ; clôture côté serveur ; arrondi aux plus grands restes ; conservation des Squids ; règlement idempotent ; remboursement sur annulation ou absence de gagnant ; classement excluant dotation et remboursements ; suspension.
 
 ## Concurrence vérifiée localement
 
@@ -32,5 +32,5 @@ La suite transactionnelle complète est aussi rejouée dans cette base locale. P
 - Aucun e-mail de confirmation ou de récupération n’a été envoyé à un utilisateur réel.
 - Les parcours connectés et Supabase Realtime ne sont pas encore validés dans un navigateur avec un compte réel. Leurs fonctions et règles serveur ont été testées ; leur validation complète nécessite la première inscription confirmée.
 - Les outils WebMCP sont facultatifs ; leur exécution connectée n’a pas été vérifiée.
-- L’URL de redirection Auth et le service d’envoi des e-mails doivent être vérifiés dans les réglages Supabase avant d’inviter la classe.
-- L’accès privé du Site et l’appartenance à ISAMARKET constituent deux contrôles distincts. Le propriétaire doit aussi autoriser les camarades dans le partage du Site.
+- L’URL de redirection Auth et le service d’envoi des e-mails doivent être vérifiés dans les réglages Supabase avant d’ouvrir les inscriptions.
+- L’accès privé du Site reste distinct de la création de compte ISAMARKET. Le propriétaire doit aussi autoriser les camarades dans le partage du Site.

@@ -50,8 +50,7 @@ try {
   const [admin,a,b,c,d] = ids;
   await asUser(db, admin, 'select public.complete_registration(null)');
   for (const id of [a,b,c,d]) {
-    const invite = await asUser(db, admin, 'select * from public.create_invitation(null,14)');
-    await asUser(db, id, 'select public.complete_registration($1)', [invite.rows[0].invitation_code]);
+    await asUser(db, id, 'select public.complete_registration(null)');
   }
   async function market(creator,title) {
     return (await asUser(db, creator, `select id from public.create_subject($1,'Contexte du test de concurrence.','Cours',null,clock_timestamp()+interval '1 day','Critères précis du test de concurrence.')`, [title])).rows[0].id;

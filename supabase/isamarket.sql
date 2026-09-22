@@ -144,7 +144,6 @@ create or replace function private.complete_registration(p_invite_code text defa
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_user auth.users%rowtype;
-  v_invitation public.invitations%rowtype;
   v_role text := 'player';
   v_username text;
 begin
@@ -158,18 +157,6 @@ begin
   end if;
   if lower(v_user.email) = 'tanguypavat8@gmail.com' then
     v_role := 'admin';
-  else
-    if coalesce(trim(p_invite_code), '') = '' then raise exception 'Invitation requise'; end if;
-    select * into v_invitation
-      from public.invitations
-      where token_hash = encode(extensions.digest(convert_to(upper(trim(p_invite_code)), 'UTF8'), 'sha256'), 'hex')
-        and used_by is null and expires_at > now()
-      for update;
-    if v_invitation.id is null then raise exception 'Invitation invalide ou expirée'; end if;
-    if v_invitation.email is not null and lower(v_invitation.email) <> lower(v_user.email) then
-      raise exception 'Cette invitation est réservée à une autre adresse';
-    end if;
-    update public.invitations set used_by = v_user.id, used_at = now() where id = v_invitation.id;
   end if;
   v_username := left(split_part(v_user.email, '@', 1), 20) || '-' || left(replace(v_user.id::text, '-', ''), 5);
   insert into public.memberships(user_id, role) values (v_user.id, v_role);

@@ -4,11 +4,11 @@ Site privé de pronostics pour une classe, en français. Chaque membre reçoit u
 
 ## Application
 
-- Connexion, inscription avec confirmation d’e-mail, invitation contrôlée dans Supabase et récupération du mot de passe.
+- Connexion, inscription libre avec confirmation d’e-mail et récupération du mot de passe.
 - Marchés Oui/Non, recherche, catégories, filtres, création limitée à un sujet par jour à Paris.
 - Cagnotte commune, simulation incluant la nouvelle mise, cotes et historique via Supabase Realtime.
 - Paris personnels, profil, avatar par URL, classement par bénéfice net réalisé.
-- Administration : invitations, suspension des membres, clôture, règlement, annulation et signalements.
+- Administration : suspension des membres, clôture, règlement, annulation et signalements.
 - Règles serveur : solde et quota protégés en concurrence, identifiants de mise uniques, paiements atomiques, distribution des arrondis aux plus grands restes, remboursement en l’absence de gagnant.
 
 ## Développement
@@ -45,10 +45,8 @@ L’administrateur applicatif est `tanguypavat8@gmail.com`, après confirmation 
 
 1. Dans Supabase Authentication > URL Configuration, renseigner l’adresse publiée comme Site URL et URL de redirection autorisée.
 2. Dans Authentication > Emails, vérifier le service SMTP, les limites et les modèles de confirmation/récupération pour permettre les e-mails aux camarades.
-3. Garder le Site privé et autoriser l’administrateur ainsi que les camarades dans son partage. Cette autorisation est distincte des invitations applicatives.
-4. L’administrateur crée son compte avec l’adresse désignée et confirme son e-mail ; il n’a pas besoin de code d’invitation.
-5. Depuis Administration, créer un code par camarade, de préférence réservé à son e-mail, puis le lui transmettre.
-6. Le camarade crée son compte avec ce code, confirme son e-mail et reçoit ses 1 000 Squids une seule fois.
+3. Garder le Site privé et autoriser l’administrateur ainsi que les camarades dans son partage.
+4. Chaque membre crée son compte, confirme son e-mail et reçoit ses 1 000 Squids une seule fois.
 
 ## Vérification
 
