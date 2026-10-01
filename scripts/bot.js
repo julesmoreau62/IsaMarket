@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://xdjitzgqjsgcupwwipzz.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ODDS_API_KEY = process.env.ODDS_API_KEY || '792887da5c72e0fe207ccba79daef4a9';
@@ -23,11 +22,10 @@ const VIP_TEAMS = [
 
 function isVipMatch(home, away, sportKey) {
   if (sportKey === 'soccer_uefa_champs_league' || sportKey === 'rugby_union_six_nations') return true;
-  const isVip = VIP_TEAMS.some(t => 
+  return VIP_TEAMS.some(t => 
     home.toLowerCase().includes(t.toLowerCase()) || 
     away.toLowerCase().includes(t.toLowerCase())
   );
-  return isVip;
 }
 
 const MORNING_SPORTS_TO_SCAN = [
@@ -40,7 +38,7 @@ const MORNING_SPORTS_TO_SCAN = [
   'soccer_spain_la_liga',
   'basketball_nba',
   'rugby_union_six_nations',
-  'tennis_atp_wimbledon', // Grand chelems par exemple
+  'tennis_atp_wimbledon', 
   'tennis_atp_french_open',
   'tennis_atp_us_open',
   'tennis_atp_australian_open'
@@ -49,12 +47,10 @@ const MORNING_SPORTS_TO_SCAN = [
 async function updateOddsAndCreateDrafts() {
   console.log("🚀 Démarrage du Bot IsaMarket...");
 
-  // 1. Récupérer l'ID de l'admin
   const { data: adminData } = await supabase.from('memberships').select('user_id').eq('role', 'admin').limit(1).single();
   if (!adminData) throw new Error("Aucun admin trouvé !");
   const adminId = adminData.user_id;
 
-  // 2. Récupérer tous les paris ouverts/drafts pour les mettre à jour
   const { data: activeSubjects } = await supabase.from('subjects')
     .select('*')
     .in('status', ['open', 'draft']);
@@ -64,6 +60,10 @@ async function updateOddsAndCreateDrafts() {
 
   console.log(`📊 Paris actifs en base : ${activePolymarket.length} Polymarket, ${activeSports.length} Sports.`);
 
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
   // ==========================================
   // POLYMARKET
   // ==========================================
@@ -72,11 +72,9 @@ async function updateOddsAndCreateDrafts() {
     const polyRes = await fetch("https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100");
     const polyEvents = await polyRes.json();
     
-    // Mettre à jour les cotes des paris existants
+    // Refresh existants
     for (const sub of activePolymarket) {
-      const event = polyEvents.find(e => {
-        return e.markets && e.markets.some(m => m.id === sub.external_id);
-      });
+      const event = polyEvents.find(e => e.markets && e.markets.some(m => m.id === sub.external_id));
       if (event) {
         const primaryMarket = event.markets.find(m => m.id === sub.external_id);
         if (primaryMarket) {
@@ -86,33 +84,36 @@ async function updateOddsAndCreateDrafts() {
           
           outcomesStrs.forEach((label, idx) => {
             let price = Number(pricesStrs[idx]);
-            if (price < 0.01) price = 0.01;
-            if (price > 0.99) price = 0.99;
+            if (price < 0.01) price = 0.01; if (price > 0.99) price = 0.99;
             let odds = Number(Math.min(1 / price, 100).toFixed(2));
-            
             const existingOpt = newOutcomes.find(o => o.label.toLowerCase() === (label === "Yes" ? "oui" : label === "No" ? "non" : label.toLowerCase()));
             if (existingOpt) existingOpt.odds = odds;
           });
           
           await supabase.from('subjects').update({ outcomes: newOutcomes }).eq('id', sub.id);
-          console.log(`✅ [Poly] Cotes mises à jour : ${sub.title}`);
         }
       }
     }
 
-    // Créer de nouveaux drafts si c'est le matin (heure < 12)
+    // Création drafts
     if (new Date().getHours() < 12) {
       const BANNED = ["cricket", "nfl", "baseball", "india", "biden", "trump", "harris", "senate", "house", "congress", "gop"];
+      let newPolyCount = 0;
+
       for (const event of polyEvents) {
+        if (newPolyCount >= 2) break; // Limite stricte : 2 paris Polymarket max par jour
+        
         if (!event.markets || event.markets.length === 0) continue;
         const titleLower = event.title.toLowerCase();
         if (BANNED.some(w => titleLower.includes(w))) continue;
 
         const primaryMarket = event.markets.sort((a, b) => Number(b.volume) - Number(a.volume))[0];
         if (Number(primaryMarket.volume) < 100000) continue;
-        if (new Date(primaryMarket.endDate) <= new Date()) continue;
+        
+        const endDate = new Date(primaryMarket.endDate);
+        // On refuse les vieux, et on refuse ce qui finit dans plus de 7 jours (car < 24h c'est introuvable sur Poly)
+        if (endDate <= now || endDate > nextWeek) continue;
 
-        // Check if exists
         const exists = activeSubjects.some(s => s.external_id === primaryMarket.id);
         if (exists) continue;
 
@@ -140,6 +141,7 @@ async function updateOddsAndCreateDrafts() {
             external_id: primaryMarket.id,
             status: 'draft'
           });
+          newPolyCount++;
           console.log(`🆕 [Poly] Nouveau brouillon : ${event.title}`);
         }
       }
@@ -149,37 +151,27 @@ async function updateOddsAndCreateDrafts() {
   }
 
   // ==========================================
-  // SPORTS (The Odds API)
+  // SPORTS
   // ==========================================
   console.log("⚽ Scan The Odds API...");
   try {
-    // Les sports à interroger : ceux des paris actifs + la liste du matin si c'est le matin
     let sportsToScan = new Set();
     activeSports.forEach(s => {
-      if (s.external_id && s.external_id.includes('::')) {
-        sportsToScan.add(s.external_id.split('::')[0]);
-      }
+      if (s.external_id && s.external_id.includes('::')) sportsToScan.add(s.external_id.split('::')[0]);
     });
+    if (new Date().getHours() < 12) MORNING_SPORTS_TO_SCAN.forEach(s => sportsToScan.add(s));
 
-    if (new Date().getHours() < 12) {
-      MORNING_SPORTS_TO_SCAN.forEach(s => sportsToScan.add(s));
-    }
-
-    console.log(`Sports à scanner : ${Array.from(sportsToScan).join(', ')}`);
-
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    let newSportCount = 0;
 
     for (const sport of sportsToScan) {
       try {
         const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h`;
         const res = await fetch(url);
-        if (res.status === 422) continue; // Sport inactif en ce moment
+        if (res.status === 422) continue; 
         const matches = await res.json();
         if (!Array.isArray(matches)) continue;
 
         for (const match of matches) {
-          // Mise à jour des cotes si le match existe déjà
           const extId = `${sport}::${match.id}`;
           const existingSubject = activeSports.find(s => s.external_id === extId);
           
@@ -196,15 +188,12 @@ async function updateOddsAndCreateDrafts() {
               if (opt) opt.odds = Number(o.price.toFixed(2));
             });
             await supabase.from('subjects').update({ outcomes: newOutcomes }).eq('id', existingSubject.id);
-            console.log(`✅ [Sport] Cotes mises à jour : ${existingSubject.title}`);
             continue;
           }
 
-          // Sinon, création de draft si c'est le matin, dans les 24h, et VIP
-          if (new Date().getHours() < 12) {
+          if (new Date().getHours() < 12 && newSportCount < 10) {
             const matchTime = new Date(match.commence_time);
             if (matchTime > now && matchTime <= tomorrow && isVipMatch(match.home_team, match.away_team, sport)) {
-              
               const outcomes = h2h.outcomes.map(o => {
                 let label = o.name; if (label === "Draw") label = "Match Nul";
                 return {
@@ -213,7 +202,6 @@ async function updateOddsAndCreateDrafts() {
                   odds: Number(o.price.toFixed(2))
                 };
               });
-
               await supabase.from('subjects').insert({
                 creator_id: adminId,
                 title: `${match.home_team} vs ${match.away_team}`,
@@ -224,6 +212,7 @@ async function updateOddsAndCreateDrafts() {
                 external_id: extId,
                 status: 'draft'
               });
+              newSportCount++;
               console.log(`🆕 [Sport] Nouveau brouillon : ${match.home_team} vs ${match.away_team}`);
             }
           }
