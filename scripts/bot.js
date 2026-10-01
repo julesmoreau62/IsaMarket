@@ -17,7 +17,7 @@ const VIP_TEAMS = [
   "Manchester City", "Manchester United", "Arsenal", "Chelsea", "Liverpool",
   "France", "Spain", "England", "Italy", "Germany", "Norway", "Denmark", "Croatia", "Portugal",
   "San Antonio Spurs", "Philadelphia 76ers",
-  "Sinner", "Alcaraz", "Djokovic", "Medvedev", "Zverev", "Swiatek", "Sabalenka", "Gauff", "Rybakina", "Pegula"
+  "Sinner", "Alcaraz", "Djokovic", "Medvedev", "Zverev", "Fils", "Swiatek", "Sabalenka", "Gauff", "Rybakina", "Pegula"
 ];
 
 function isVipMatch(home, away, sportKey) {
