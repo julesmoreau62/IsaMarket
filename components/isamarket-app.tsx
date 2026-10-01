@@ -10,7 +10,6 @@ import {
   Sparkles, Trophy, UserRound, WalletCards
 } from "lucide-react";
 import Image from "next/image";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase";
@@ -40,22 +39,22 @@ import { Toaster } from "@/components/ui/sonner";
 
 type Page = "marches" | "paris" | "classement" | "profil" | "admin";
 type Role = "player" | "admin";
-type Side = "yes" | "no";
 
 type Membership = { user_id: string; role: Role; status: "active" | "suspended" };
 type Profile = { user_id: string; username: string; avatar_url: string | null };
 type Wallet = { user_id: string; balance: number };
 type Market = {
-  id: string; creator_id: string; title: string; description: string; category: string;
-  image_url: string | null; closes_at: string; resolution_criteria: string;
-  conditions_locked: boolean; status: "open" | "yes" | "no" | "cancelled";
+  id: string; creator_id: string; title: string; description: string | null; category: string;
+  image_url: string | null; closes_at: string; conditions_locked: boolean; status: "open" | "resolved" | "cancelled" | "draft";
+    external_id?: string | null;
   resolution_note: string | null; resolved_at: string | null; created_at: string;
-  creation_day: string; yes_pool: number; no_pool: number; total_pool: number;
-  wager_count: number; yes_odds: number | null; no_odds: number | null;
+  creation_day: string; total_pool: number;
+  wager_count: number; outcomes_stats: { id: string; label: string; odds: number; pool: number }[];
+  winning_outcome_id: string | null;
   betting_closed_at: string | null; close_note: string | null;
 };
 type Wager = {
-  id: string; subject_id: string; user_id: string; side: Side; amount: number;
+  id: string; subject_id: string; user_id: string; side: string; odds: number; amount: number;
   payout: number | null; result: "open" | "won" | "lost" | "refunded"; placed_at: string;
   subjects?: Market | null;
 };
@@ -63,17 +62,13 @@ type Leader = {
   user_id: string; username: string; avatar_url: string | null; net_profit: number;
   settled_wagers: number; won_wagers: number; success_rate: number;
 };
-type OddPoint = {
-  id: number; subject_id: string; yes_pool: number; no_pool: number;
-  yes_odds: number | null; no_odds: number | null; created_at: string;
-};
 type Report = {
   id: string; subject_id: string | null; reporter_id: string; reason: string;
   status: "open" | "resolved" | "dismissed"; admin_note: string | null; created_at: string;
 };
 type MemberRow = Membership & { profile?: Profile; wallet?: Wallet };
 
-const categories = ["Toutes", "Cours", "Sport", "Vie de classe", "Culture", "Autre"];
+const categories = ["Toutes", "Polymarket", "Cours", "Sport", "Vie de classe", "Culture", "Autre"];
 const number = new Intl.NumberFormat("fr-FR");
 const compactDate = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -262,7 +257,7 @@ export function IsamarketApp() {
         annotations: { readOnlyHint: true, untrustedContentHint: true },
         execute: async () => markets.filter((market) => market.status === "open" && !market.betting_closed_at && new Date(market.closes_at) > new Date()).map((market) => ({
           id: market.id, title: market.title, closesAt: market.closes_at,
-          yesOdds: market.yes_odds, noOdds: market.no_odds, totalPool: market.total_pool
+          outcomes: market.outcomes_stats, totalPool: market.total_pool
         })),
       }, { signal: lifecycle.signal });
       await context.registerTool({
@@ -350,7 +345,7 @@ export function IsamarketApp() {
         <main className="min-w-0 px-4 py-7 sm:px-7 lg:px-10 lg:py-10"><p className="mb-4 text-sm text-muted-foreground">{live ? "Cotes actualisées en direct" : "Reconnexion au direct… actualisation toutes les 30 secondes"} · Heure de Paris</p>{dataError && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4"><p>Les données n’ont pas pu être actualisées : {dataError}</p><Button variant="outline" className="mt-3" onClick={() => void refresh()}>Réessayer</Button></div>}{content[page]}</main>
       </div>
 
-      <CreateMarketDialog quotaUsed={markets.some((market) => market.creator_id === session.user.id && market.creation_day === new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()))} open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
+      <CreateMarketDialog quotaUsed={membership?.role !== "admin" && markets.some((market) => market.creator_id === session.user.id && market.creation_day === new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()))} open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
       <MarketDialog key={selected?.id || "none"} market={selected} user={session.user} balance={wallet?.balance || 0} onOpenChange={(open) => !open && setSelected(null)} onChanged={async () => {
         await refresh();
         if (selected) {
@@ -467,7 +462,7 @@ function MarketsPage({ markets, currentUserId, loading, onSelect, onCreate }: { 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Toutes");
   const [status, setStatus] = useState("open");
-  const filtered = markets.filter((market) => (status === "all" || (status === "resolved" ? market.status !== "open" : market.status === status && !market.betting_closed_at && new Date(market.closes_at) > new Date())) && (category === "Toutes" || market.category === category) && (market.title + " " + market.description).toLowerCase().includes(query.toLowerCase()));
+  const filtered = markets.filter((market) => market.status !== "draft" && (status === "all" || (status === "resolved" ? market.status !== "open" : market.status === status && !market.betting_closed_at && new Date(market.closes_at) > new Date())) && (category === "Toutes" || market.category === category) && (market.title + " " + (market.description||"")).toLowerCase().includes(query.toLowerCase()));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
   const usedQuota = markets.some((market) => market.creator_id === currentUserId && market.creation_day === today);
 
@@ -494,10 +489,14 @@ function MarketCard({ market, onClick }: { market: Market; onClick: () => void }
     <div className="p-5">
       <div className="flex items-center justify-between gap-3"><Badge variant="secondary">{market.category}</Badge><span className="flex items-center gap-1.5 text-sm text-muted-foreground"><Clock3 className="size-4" />{closed ? "Clôturé" : compactDate.format(new Date(market.closes_at))}</span></div>
       <h2 className="mt-4 text-xl font-black leading-snug tracking-[-0.025em] group-hover:text-[#b53660]">{market.title}</h2>
-      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{market.description}</p>
+      {market.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{market.description}</p>}
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-[#e7f8f3] p-3"><div className="flex justify-between text-sm font-bold text-[#0d725c]"><span>Oui</span><span>{odd(market.yes_odds)}</span></div><div className="mt-2 h-1.5 rounded-full bg-[#c3ebdf]"><div className="h-full rounded-full bg-[#20a884]" style={{ width: market.total_pool ? (Number(market.yes_pool) / Number(market.total_pool)) * 100 + "%" : "0%" }} /></div></div>
-        <div className="rounded-xl bg-[#fdebf0] p-3"><div className="flex justify-between text-sm font-bold text-[#aa365d]"><span>Non</span><span>{odd(market.no_odds)}</span></div><div className="mt-2 h-1.5 rounded-full bg-[#f7cdd9]"><div className="h-full rounded-full bg-[#df5d88]" style={{ width: market.total_pool ? (Number(market.no_pool) / Number(market.total_pool)) * 100 + "%" : "0%" }} /></div></div>
+        {(market.outcomes_stats || []).map((outcome) => (
+          <div key={outcome.id} className="rounded-xl bg-[#e7f8f3] p-3">
+            <div className="flex justify-between text-sm font-bold text-[#0d725c]"><span>{outcome.label}</span><span>{odd(outcome.odds || (market.total_pool && outcome.pool ? (Number(market.total_pool) / Number(outcome.pool)) : 2))}</span></div>
+            <div className="mt-2 h-1.5 rounded-full bg-[#c3ebdf]"><div className="h-full rounded-full bg-[#20a884]" style={{ width: market.total_pool ? (Number(outcome.pool) / Number(market.total_pool)) * 100 + "%" : "0%" }} /></div>
+          </div>
+        ))}
       </div>
       <div className="mt-4 flex items-center justify-between text-sm"><span className="font-bold">{squid(market.total_pool)} Squids engagés</span><span className="text-muted-foreground">{number.format(market.wager_count)} mise{market.wager_count > 1 ? "s" : ""}</span></div>
     </div>
@@ -506,58 +505,113 @@ function MarketCard({ market, onClick }: { market: Market; onClick: () => void }
 
 function CreateMarketDialog({ open, onOpenChange, onCreated, quotaUsed }: { quotaUsed: boolean; open: boolean; onOpenChange: (open: boolean) => void; onCreated: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
+  const [outcomes, setOutcomes] = useState([{ id: "yes", label: "Oui", odds: "2.00" }, { id: "no", label: "Non", odds: "2.00" }]);
+  const [banned, setBanned] = useState<string[]>([]);
+  const [profiles, setProfiles] = useState<{user_id: string, username: string}[]>([]);
+  
+  useEffect(() => {
+    if (open) {
+      supabase.from("profiles").select("user_id, username").then(({ data }) => {
+        if (data) setProfiles(data);
+      });
+    }
+  }, [open]);
+
+  const handleOddsChange = (index: number, value: string) => {
+    const newO = [...outcomes];
+    newO[index].odds = value;
+    
+    // Auto-recalculate if there are exactly 2 outcomes
+    if (outcomes.length === 2 && value !== "" && Number(value) > 1) {
+      const p1 = 1 / Number(value);
+      if (p1 < 1) {
+        const p2 = 1 - p1;
+        const autoOdds = (1 / p2).toFixed(2);
+        const otherIndex = index === 0 ? 1 : 0;
+        newO[otherIndex].odds = autoOdds;
+      }
+    }
+    setOutcomes(newO);
+  };
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true);
     const values = new FormData(event.currentTarget);
     const closes = new Date(String(values.get("closes_at")));
     if (!Number.isFinite(closes.getTime()) || closes <= new Date()) { toast.error("Choisis une clôture future."); setBusy(false); return; }
+    
+    const finalOutcomes = outcomes.map((o, i) => ({ id: o.id || `opt_${i}`, label: o.label, odds: Number(o.odds) }));
+    
     const { error } = await supabase.rpc("create_subject", {
-      p_title: values.get("title"), p_description: values.get("description"),
+      p_title: values.get("title"),
       p_category: values.get("category"), p_image_url: values.get("image_url") || null,
-      p_closes_at: closes.toISOString(), p_resolution_criteria: values.get("criteria")
+      p_closes_at: closes.toISOString(),
+      p_outcomes: finalOutcomes, p_banned_users: banned
     });
     if (error) toast.error(message(error)); else { toast.success("Sujet publié."); onOpenChange(false); await onCreated(); }
     setBusy(false);
   }
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle className="text-2xl font-black">Créer un sujet</DialogTitle><DialogDescription>{quotaUsed ? "Quota utilisé : 0 sujet disponible aujourd’hui." : "Quota disponible : 1 sujet aujourd’hui."} Renouvellement à minuit, heure de Paris. Une annulation ne restitue pas le quota.</DialogDescription></DialogHeader><form onSubmit={submit} className="space-y-5">
-    <div className="space-y-2"><Label htmlFor="title">Question Oui / Non</Label><Input id="title" name="title" required minLength={8} maxLength={120} placeholder="La promo dépassera-t-elle 80 % de réussite ?" /></div>
-    <div className="space-y-2"><Label htmlFor="description">Contexte</Label><Textarea id="description" name="description" required minLength={20} maxLength={2000} placeholder="Donne les informations utiles pour comprendre le sujet." /></div>
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle className="text-2xl font-black">Créer un sujet</DialogTitle><DialogDescription>{quotaUsed ? "Quota utilisé : 0 sujet disponible aujourd’hui." : "Quota disponible : 1 sujet aujourd’hui."} Renouvellement à minuit, heure de Paris.</DialogDescription></DialogHeader><form onSubmit={submit} className="space-y-5">
+    <div className="space-y-2"><Label htmlFor="title">Question / Sujet</Label><Input id="title" name="title" required minLength={8} maxLength={120} placeholder="La promo dépassera-t-elle 80 % de réussite ?" /></div>
+    
+    <div className="space-y-3">
+      <Label>Résultats possibles & Cotes fixes</Label>
+      {outcomes.map((outcome, i) => (
+        <div key={i} className="flex gap-2">
+          <Input required placeholder="Label (ex: Victoire)" value={outcome.label} onChange={(e) => { const newO = [...outcomes]; newO[i].label = e.target.value; setOutcomes(newO); }} />
+          <Input required type="number" step="0.01" min="1.01" placeholder="Cote (ex: 1.5)" value={outcome.odds} onChange={(e) => handleOddsChange(i, e.target.value)} />
+          {outcomes.length > 2 && <Button type="button" variant="destructive" onClick={() => { const newO = [...outcomes]; newO.splice(i, 1); setOutcomes(newO); }}>X</Button>}
+        </div>
+      ))}
+      <Button type="button" variant="secondary" onClick={() => setOutcomes([...outcomes, { id: crypto.randomUUID(), label: "", odds: "2.00" }])}>Ajouter un résultat</Button>
+    </div>
+
     <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Catégorie</Label><Select name="category" defaultValue="Vie de classe"><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>{categories.slice(1).map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="closes_at">Clôture (heure de cet appareil)</Label><Input id="closes_at" name="closes_at" type="datetime-local" required /></div></div>
+    
+    <div className="space-y-2">
+      <Label>Utilisateurs bannis (Ne pourront ni voir ni miser)</Label>
+      <div className="flex flex-col gap-2 max-h-32 overflow-y-auto border p-2 rounded-md">
+        {profiles.map(p => (
+          <label key={p.user_id} className="flex items-center gap-2">
+            <input type="checkbox" checked={banned.includes(p.user_id)} onChange={(e) => {
+              if (e.target.checked) setBanned([...banned, p.user_id]);
+              else setBanned(banned.filter(id => id !== p.user_id));
+            }} />
+            {p.username}
+          </label>
+        ))}
+      </div>
+    </div>
+
     <div className="space-y-2"><Label htmlFor="image_url">Image (URL facultative)</Label><Input id="image_url" name="image_url" type="url" placeholder="https://…" /></div>
-    <div className="space-y-2"><Label htmlFor="criteria">Critères précis de résolution</Label><Textarea id="criteria" name="criteria" required minLength={20} maxLength={1200} placeholder="Indique la source et la règle qui permettront de trancher sans ambiguïté." /><p className="text-xs text-muted-foreground">Le titre, le contexte, l’échéance et ces critères ne seront plus modifiables dès la première mise.</p></div>
+    
     <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button><Button disabled={busy || quotaUsed} className="bg-[#142846]">{busy ? <Loader2 className="animate-spin" /> : "Publier le sujet"}</Button></DialogFooter>
   </form></DialogContent></Dialog>;
 }
 
 function MarketDialog({ market, user, balance, onOpenChange, onChanged }: { market: Market | null; user: User; balance: number; onOpenChange: (open: boolean) => void; onChanged: () => Promise<void> }) {
-  const [side, setSide] = useState<Side>("yes");
+  const [side, setSide] = useState<string>("");
   const [amount, setAmount] = useState("50");
   const [busy, setBusy] = useState(false);
-  const [history, setHistory] = useState<OddPoint[]>([]);
   const [reportOpen, setReportOpen] = useState(false);
-  const [historyError, setHistoryError] = useState(false);
   const wagerLock = useRef(false);
   const attempt = useRef<{ signature: string; id: string } | null>(null);
+
   useEffect(() => {
-    if (!market) return;
-    let active = true;
-    supabase.from("odds_history").select("*").eq("subject_id", market.id).order("id", { ascending: false }).limit(300).then(({ data, error }) => {
-      if (active) { setHistoryError(Boolean(error)); if (!error) setHistory(((data || []) as OddPoint[]).reverse()); }
-    });
-    return () => { active = false; };
+    if (market && market.outcomes_stats?.length > 0 && !side) {
+      setSide(market.outcomes_stats[0].id);
+    }
   }, [market]);
 
   if (!market) return null;
   const value = Number(amount);
-  const simulatedYes = Number(market.yes_pool) + (side === "yes" ? value : 0);
-  const simulatedNo = Number(market.no_pool) + (side === "no" ? value : 0);
-  const total = simulatedYes + simulatedNo;
-  const simulatedOdd = side === "yes" ? (simulatedYes ? total / simulatedYes : null) : (simulatedNo ? total / simulatedNo : null);
+  const selectedOutcome = market.outcomes_stats?.find(o => o.id === side);
+  const simulatedOdd = selectedOutcome ? (selectedOutcome.odds || (market.total_pool && selectedOutcome.pool ? (Number(market.total_pool) / Number(selectedOutcome.pool)) : 2)) : null;
   const potential = simulatedOdd ? Math.floor(value * simulatedOdd) : 0;
   const open = market.status === "open" && !market.betting_closed_at && new Date(market.closes_at) > new Date();
 
   async function wager() {
-    if (!market || wagerLock.current) return;
+    if (!market || wagerLock.current || !side) return;
     if (!Number.isSafeInteger(value) || value <= 0) return toast.error("Saisis une mise entière et positive.");
     if (value > balance) return toast.error("Solde insuffisant.");
     const signature = `${market.id}:${side}:${value}`;
@@ -581,17 +635,24 @@ function MarketDialog({ market, user, balance, onOpenChange, onChanged }: { mark
   }
 
   return <><Dialog open={Boolean(market)} onOpenChange={onOpenChange}><DialogContent className="max-h-[94vh] overflow-y-auto p-0 sm:max-w-4xl"><div className="grid lg:grid-cols-[1fr_340px]">
-    <div className="p-6 sm:p-8">{market.image_url && <img src={market.image_url} alt="" className="mb-6 h-52 w-full rounded-2xl object-cover" />}<div className="flex items-center justify-between"><Badge variant="secondary">{market.category}</Badge><button onClick={() => setReportOpen(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#c7446d]"><Flag className="size-4" />Signaler</button></div><DialogHeader><DialogTitle className="mt-4 text-3xl font-black leading-tight tracking-[-0.04em]">{market.title}</DialogTitle><DialogDescription>Pronostic Oui / Non · Cagnotte commune en Squids</DialogDescription></DialogHeader><p className="mt-4 leading-relaxed text-muted-foreground">{market.description}</p>
-      <div className="mt-6 rounded-2xl border bg-[#f6f8fb] p-4"><p className="flex items-center gap-2 font-bold"><ShieldCheck className="size-4 text-[#c7446d]" />Règle de résolution</p><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{market.resolution_criteria}</p>{market.conditions_locked && <p className="mt-3 text-xs font-semibold text-[#8b4960]">Conditions verrouillées depuis la première mise.</p>}</div>
-      {historyError && <p role="alert" className="mt-5 text-sm text-red-700">Historique indisponible. Réouvre ce sujet pour réessayer.</p>}{!historyError && history.length === 0 && <p className="mt-5 text-sm text-muted-foreground">L’historique des cotes commencera à la première mise.</p>}{history.length > 0 && <div className="mt-7"><h3 className="font-black">Historique des cotes</h3><div className="mt-3 h-52 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={history}><defs><linearGradient id="yesFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#20a884" stopOpacity={0.3}/><stop offset="95%" stopColor="#20a884" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="created_at" tickFormatter={(v) => new Date(v).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} fontSize={12}/><YAxis fontSize={12}/><Tooltip labelFormatter={(v) => compactDate.format(new Date(v))} formatter={(v) => odd(Number(v))}/><Area type="stepAfter" dot={{ r: 3 }} dataKey="yes_odds" name="Oui" stroke="#20a884" fill="url(#yesFill)" /><Area type="stepAfter" dot={{ r: 3 }} dataKey="no_odds" name="Non" stroke="#df5d88" fill="transparent" /></AreaChart></ResponsiveContainer></div></div>}
-      {market.close_note && <p className="mt-4 text-sm text-muted-foreground">Clôture anticipée : {market.close_note}</p>}{market.resolution_note && <div className="mt-6 rounded-xl border border-[#d9e3f0] bg-white p-4"><p className="font-bold">Décision : {market.status === "yes" ? "Oui" : market.status === "no" ? "Non" : "Annulé"}</p><p className="mt-1 text-sm text-muted-foreground">{market.resolution_note}</p></div>}
+    <div className="p-6 sm:p-8">{market.image_url && <img src={market.image_url} alt="" className="mb-6 h-52 w-full rounded-2xl object-cover" />}<div className="flex items-center justify-between"><Badge variant="secondary">{market.category}</Badge><button onClick={() => setReportOpen(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#c7446d]"><Flag className="size-4" />Signaler</button></div><DialogHeader><DialogTitle className="mt-4 text-3xl font-black leading-tight tracking-[-0.04em]">{market.title}</DialogTitle><DialogDescription>Cotes fixes · Le gain dépend de la cote à l'instant de la mise.</DialogDescription></DialogHeader>{market.description && <p className="mt-4 leading-relaxed text-muted-foreground">{market.description}</p>}
+      {market.close_note && <p className="mt-4 text-sm text-muted-foreground">Clôture anticipée : {market.close_note}</p>}{market.resolution_note && <div className="mt-6 rounded-xl border border-[#d9e3f0] bg-white p-4"><p className="font-bold">Décision : {market.status === "resolved" ? (market.outcomes_stats?.find(o => o.id === market.winning_outcome_id)?.label || "Résolu") : market.status === "cancelled" ? "Annulé" : "En attente"}</p><p className="mt-1 text-sm text-muted-foreground">{market.resolution_note}</p></div>}
     </div>
-    <aside className="border-t bg-[#f8f9fc] p-6 lg:border-l lg:border-t-0"><p className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><CalendarClock className="size-4" />Clôture {compactDate.format(new Date(market.closes_at))}</p><div className="mt-5 grid grid-cols-2 gap-3"><button onClick={() => setSide("yes")} className={cn("rounded-xl border-2 p-4 text-left", side === "yes" ? "border-[#20a884] bg-[#e7f8f3]" : "border-transparent bg-white")}><span className="text-sm font-bold text-[#0d725c]">Oui</span><span className="mt-1 block text-xl font-black">{odd(market.yes_odds)}</span><span className="text-xs text-muted-foreground">{squid(market.yes_pool)} S</span></button><button onClick={() => setSide("no")} className={cn("rounded-xl border-2 p-4 text-left", side === "no" ? "border-[#df5d88] bg-[#fdebf0]" : "border-transparent bg-white")}><span className="text-sm font-bold text-[#aa365d]">Non</span><span className="mt-1 block text-xl font-black">{odd(market.no_odds)}</span><span className="text-xs text-muted-foreground">{squid(market.no_pool)} S</span></button></div>
-      {open ? <><div className="mt-6 space-y-2"><Label htmlFor="amount">Montant de la mise</Label><p className="text-sm text-muted-foreground">Disponible : {squid(balance)} Squids</p><div className="relative"><Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={1} step={1} max={balance} inputMode="numeric" className="h-12 pr-20 text-lg font-bold" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">Squids</span></div></div><div className="mt-4 rounded-xl bg-white p-4 text-sm"><div className="flex justify-between"><span>Cote simulée</span><strong>{odd(simulatedOdd)}</strong></div><div className="mt-2 flex justify-between"><span>Retour estimé, mise incluse</span><strong>{potential ? "≈ " + squid(potential) + " S" : "—"}</strong></div><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Simulation après ta nouvelle mise. Le gain final dépend de toute la cagnotte à la clôture. La répartition n’est pas une probabilité objective.</p></div><Button disabled={busy || !Number.isSafeInteger(value) || value <= 0 || value > balance} onClick={() => void wager()} className={cn("mt-5 h-12 w-full font-black text-white", side === "yes" ? "bg-[#16876c] hover:bg-[#0f7059]" : "bg-[#c7446d] hover:bg-[#ad365d]")}>{busy ? <Loader2 className="animate-spin" /> : "Miser " + squid(value) + " sur " + (side === "yes" ? "Oui" : "Non")}</Button><p className="mt-3 text-center text-xs text-muted-foreground">Toute mise validée est irréversible.</p></> : <div className="mt-6 rounded-xl border border-dashed p-5 text-center"><LockKeyhole className="mx-auto size-5 text-muted-foreground" /><p className="mt-2 font-bold">Mises closes</p><p className="text-sm text-muted-foreground">{market.status === "open" ? "En attente du résultat." : "Ce sujet est terminé."}</p></div>}
+    <aside className="border-t bg-[#f8f9fc] p-6 lg:border-l lg:border-t-0"><p className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><CalendarClock className="size-4" />Clôture {compactDate.format(new Date(market.closes_at))}</p><div className="mt-5 grid grid-cols-2 gap-3">
+      {market.outcomes_stats?.map((outcome) => (
+        <button key={outcome.id} onClick={() => setSide(outcome.id)} className={cn("rounded-xl border-2 p-4 text-left", side === outcome.id ? "border-[#20a884] bg-[#e7f8f3]" : "border-transparent bg-white")}>
+          <span className="text-sm font-bold text-[#0d725c]">{outcome.label}</span>
+          <span className="mt-1 block text-xl font-black">{odd(outcome.odds || (market.total_pool && outcome.pool ? (Number(market.total_pool) / Number(outcome.pool)) : 2))}</span>
+          <span className="text-xs text-muted-foreground">{squid(outcome.pool)} S engagés</span>
+        </button>
+      ))}
+    </div>
+      {open ? <><div className="mt-6 space-y-2"><Label htmlFor="amount">Montant de la mise</Label><p className="text-sm text-muted-foreground">Disponible : {squid(balance)} Squids</p><div className="relative"><Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={1} step={1} max={balance} inputMode="numeric" className="h-12 pr-20 text-lg font-bold" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">Squids</span></div></div><div className="mt-4 rounded-xl bg-white p-4 text-sm"><div className="flex justify-between"><span>Cote</span><strong>{odd(simulatedOdd)}</strong></div><div className="mt-2 flex justify-between"><span>Gain potentiel</span><strong>{potential ? "= " + squid(potential) + " S" : "—"}</strong></div><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Le gain final est calculé avec cette cote fixe.</p></div><Button disabled={busy || !Number.isSafeInteger(value) || value <= 0 || value > balance || !side} onClick={() => void wager()} className={cn("mt-5 h-12 w-full font-black text-white bg-[#16876c] hover:bg-[#0f7058]")}>{busy ? <Loader2 className="mx-auto animate-spin" /> : "Valider ma mise"}</Button></> : <div className="mt-6 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 p-5 text-center"><LockKeyhole className="mx-auto size-5 text-muted-foreground" /><p className="mt-2 font-bold">Mises closes</p><p className="text-sm text-muted-foreground">{market.status === "open" ? "En attente du résultat." : "Ce sujet est terminé."}</p></div>}
     </aside>
   </div></DialogContent></Dialog>
   <Dialog open={reportOpen} onOpenChange={setReportOpen}><DialogContent><DialogHeader><DialogTitle>Signaler ce sujet</DialogTitle><DialogDescription>Explique clairement le problème à l’administrateur.</DialogDescription></DialogHeader><form onSubmit={report} className="space-y-4"><Textarea name="reason" required minLength={10} placeholder="Pourquoi ce sujet doit-il être examiné ?" /><DialogFooter><Button type="button" variant="outline" onClick={() => setReportOpen(false)}>Annuler</Button><Button type="submit">Envoyer</Button></DialogFooter></form></DialogContent></Dialog></>;
 }
+
 
 function MyBetsPage({ wagers }: { wagers: Wager[] }) {
   const open = wagers.filter((wager) => wager.result === "open");
@@ -601,7 +662,7 @@ function MyBetsPage({ wagers }: { wagers: Wager[] }) {
 
 function BetList({ wagers, empty }: { wagers: Wager[]; empty: string }) {
   if (!wagers.length) return <Empty className="min-h-44 border bg-white"><EmptyHeader><EmptyMedia variant="icon"><WalletCards /></EmptyMedia><EmptyTitle>{empty}</EmptyTitle></EmptyHeader></Empty>;
-  return <div className="space-y-3">{wagers.map((wager) => <div key={wager.id} className="flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center"><div className={cn("flex size-12 shrink-0 items-center justify-center rounded-xl font-black", wager.side === "yes" ? "bg-[#e7f8f3] text-[#0d725c]" : "bg-[#fdebf0] text-[#aa365d]")}>{wager.side === "yes" ? "OUI" : "NON"}</div><div className="min-w-0 flex-1"><p className="truncate font-bold">{wager.subjects?.title || "Sujet"}</p><p className="mt-1 text-sm text-muted-foreground">{compactDate.format(new Date(wager.placed_at))} · Mise de {squid(wager.amount)} Squids</p></div><div className="text-left sm:text-right"><Badge variant={wager.result === "won" ? "default" : wager.result === "lost" ? "destructive" : "secondary"}>{wager.result === "open" ? "En cours" : wager.result === "won" ? "Gagné" : wager.result === "lost" ? "Perdu" : "Remboursé"}</Badge>{wager.payout !== null && <p className="mt-1 font-black">{squid(wager.payout)} S</p>}</div></div>)}</div>;
+  return <div className="space-y-3">{wagers.map((wager) => <div key={wager.id} className="flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center"><div className="flex size-12 shrink-0 items-center justify-center rounded-xl font-black bg-[#e7f8f3] text-[#0d725c] text-[10px] px-1 text-center overflow-hidden">{wager.subjects?.outcomes_stats?.find(o => o.id === wager.side)?.label?.slice(0,4).toUpperCase() || wager.side.slice(0,4).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate font-bold">{wager.subjects?.title || "Sujet"}</p><p className="mt-1 text-sm text-muted-foreground">{compactDate.format(new Date(wager.placed_at))} · Mise de {squid(wager.amount)} Squids</p></div><div className="text-left sm:text-right"><Badge variant={wager.result === "won" ? "default" : wager.result === "lost" ? "destructive" : "secondary"}>{wager.result === "open" ? "En cours" : wager.result === "won" ? "Gagné" : wager.result === "lost" ? "Perdu" : "Remboursé"}</Badge>{wager.payout !== null && <p className="mt-1 font-black">{squid(wager.payout)} S</p>}</div></div>)}</div>;
 }
 
 function LeaderboardPage({ leaders }: { leaders: Leader[] }) {
@@ -623,12 +684,17 @@ function ProfilePage({ user, profile, wallet, wagers, onSaved }: { user: User; p
 
 function AdminPage({ markets, reports, members, currentUserId, onChanged }: { markets: Market[]; reports: Report[]; members: MemberRow[]; currentUserId: string; onChanged: () => Promise<void> }) {
   const [settling, setSettling] = useState<Market | null>(null);
-  const [outcome, setOutcome] = useState<"yes" | "no" | "cancelled" | "close">("yes");
+  const [outcome, setOutcome] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const adminLock = useRef(false);
   const [note, setNote] = useState("");
+  
+  useEffect(() => {
+    if (settling && settling.outcomes_stats?.length > 0) setOutcome(settling.outcomes_stats[0].id);
+  }, [settling]);
+
   async function settle() {
-    if (!settling || adminLock.current) return;
+    if (!settling || adminLock.current || !outcome) return;
     adminLock.current = true; setBusy(true);
     const { error } = outcome === "close" ? await supabase.rpc("close_subject", { p_subject_id: settling.id, p_note: note }) : await supabase.rpc("resolve_subject", { p_subject_id: settling.id, p_outcome: outcome, p_note: note });
     if (error) toast.error(message(error)); else { toast.success(outcome === "close" ? "Mises clôturées. Le résultat pourra être saisi plus tard." : "Sujet réglé. Les portefeuilles ont été mis à jour."); setSettling(null); setNote(""); await onChanged(); }
@@ -645,8 +711,14 @@ function AdminPage({ markets, reports, members, currentUserId, onChanged }: { ma
   }
   return <><PageHeading eyebrow="Administration" title="Piloter la classe" /><div>
     <div className="space-y-4"><h2 className="text-xl font-black">Sujets à régler</h2>{markets.filter((m) => m.status === "open").map((market) => <div key={market.id} className="flex flex-col gap-4 rounded-2xl border bg-white p-5 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="font-bold">{market.title}</p><p className="mt-1 text-sm text-muted-foreground">Clôture : {compactDate.format(new Date(market.closes_at))} · Cagnotte : {squid(market.total_pool)} S</p></div><Button variant="outline" onClick={() => setSettling(market)}>Régler</Button></div>)}</div>
+      
+      <section className="mt-10 space-y-4"><h2 className="text-xl font-black text-[#142846]">🤖 Paris suggérés par l'algorithme (Polymarket & Sports)</h2>{markets.filter((m) => m.status === "draft").map((market) => <div key={market.id} className="flex flex-col gap-4 rounded-2xl border border-[#b5c7e1] bg-[#edf1f7] p-5 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="font-bold">{market.title}</p><p className="mt-1 text-sm text-muted-foreground">Clôture : {compactDate.format(new Date(market.closes_at))} · {(market.outcomes_stats || []).map(o => o.label + ' (' + Number(o.odds).toFixed(2) + ')').join(' / ')}</p></div><div className="flex gap-2"><Button onClick={async () => { const {error} = await supabase.from('subjects').update({status: 'open'}).eq('id', market.id); if (error) { console.error(error); alert('Update Error: ' + error.message); } await onChanged(); }}>✅ Valider</Button><Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={async () => { const {error} = await supabase.from('subjects').delete().eq('id', market.id); if (error) { console.error(error); alert('Delete Error: ' + error.message); } await onChanged(); }}>❌ Rejeter</Button></div></div>)}{!markets.some((m) => m.status === "draft") && <p className="rounded-xl border border-dashed border-[#b5c7e1] bg-white p-6 text-center text-muted-foreground">Aucune suggestion en attente pour le moment.</p>}</section>
     <section className="mt-10 overflow-hidden rounded-2xl border bg-white"><div className="p-6"><h2 className="text-xl font-black">Membres</h2></div><Table><TableHeader><TableRow><TableHead>Membre</TableHead><TableHead>Rôle</TableHead><TableHead>Solde</TableHead><TableHead className="text-right">Accès</TableHead></TableRow></TableHeader><TableBody>{members.map((member) => <TableRow key={member.user_id}><TableCell><div className="flex items-center gap-3"><AvatarView profile={member.profile} /><span className="font-bold">{member.profile?.username || member.user_id.slice(0, 8)}</span></div></TableCell><TableCell>{member.role === "admin" ? "Admin" : "Joueur"}</TableCell><TableCell>{squid(member.wallet?.balance || 0)} S</TableCell><TableCell className="text-right"><Button size="sm" variant="outline" disabled={member.user_id === currentUserId} onClick={() => void toggleMember(member)}>{member.status === "active" ? "Suspendre" : "Réactiver"}</Button></TableCell></TableRow>)}</TableBody></Table></section>
     <section className="mt-10 space-y-3"><h2 className="text-xl font-black">Signalements</h2>{reports.filter((r) => r.status === "open").map((report) => <div key={report.id} className="rounded-2xl border bg-white p-5"><p className="font-bold">{markets.find((market) => market.id === report.subject_id)?.title || "Sujet signalé"}</p><p className="mt-2 text-sm leading-relaxed">{report.reason}</p><div className="mt-4 flex gap-2"><Button size="sm" onClick={() => void closeReport(report, "resolved")}>Traité</Button><Button size="sm" variant="outline" onClick={() => void closeReport(report, "dismissed")}>Classer sans suite</Button></div></div>)}{!reports.some((r) => r.status === "open") && <p className="rounded-xl border border-dashed bg-white p-6 text-center text-muted-foreground">Aucun signalement en attente.</p>}</section>
   </div>
-  <Dialog open={Boolean(settling)} onOpenChange={(open) => !open && setSettling(null)}><DialogContent><DialogHeader><DialogTitle>Régler le sujet</DialogTitle><DialogDescription>{settling?.title}</DialogDescription></DialogHeader><div className="space-y-4"><div className="grid grid-cols-2 gap-2">{(["yes","no","cancelled","close"] as const).map((value) => <button key={value} onClick={() => setOutcome(value)} className={cn("rounded-xl border-2 p-3 font-bold", outcome === value ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>{value === "yes" ? "Oui" : value === "no" ? "Non" : value === "cancelled" ? "Annuler" : "Clôturer"}</button>)}</div><Textarea value={note} onChange={(e) => setNote(e.target.value)} minLength={10} maxLength={2000} aria-label="Justification de la décision" placeholder="Justification précise du résultat…" /></div><DialogFooter><Button variant="outline" onClick={() => setSettling(null)}>Fermer</Button><Button disabled={busy || note.trim().length < 10} onClick={() => void settle()}>{busy ? "Traitement…" : outcome === "close" ? "Clôturer les mises" : "Confirmer et payer"}</Button></DialogFooter></DialogContent></Dialog></>;
+  <Dialog open={Boolean(settling)} onOpenChange={(open) => !open && setSettling(null)}><DialogContent><DialogHeader><DialogTitle>Régler le sujet</DialogTitle><DialogDescription>{settling?.title}</DialogDescription></DialogHeader><div className="space-y-4"><div className="grid grid-cols-2 gap-2">
+    {settling?.outcomes_stats?.map((opt) => <button key={opt.id} onClick={() => setOutcome(opt.id)} className={cn("rounded-xl border-2 p-3 font-bold", outcome === opt.id ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>{opt.label}</button>)}
+    <button onClick={() => setOutcome("cancelled")} className={cn("rounded-xl border-2 p-3 font-bold", outcome === "cancelled" ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>Annuler</button>
+    <button onClick={() => setOutcome("close")} className={cn("rounded-xl border-2 p-3 font-bold", outcome === "close" ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>Clôturer sans résoudre</button>
+  </div><Textarea value={note} onChange={(e) => setNote(e.target.value)} minLength={10} maxLength={2000} aria-label="Justification de la décision" placeholder="Justification précise du résultat…" /></div><DialogFooter><Button variant="outline" onClick={() => setSettling(null)}>Fermer</Button><Button disabled={busy || note.trim().length < 10} onClick={() => void settle()}>{busy ? "Traitement…" : outcome === "close" ? "Clôturer les mises" : "Confirmer et payer"}</Button></DialogFooter></DialogContent></Dialog></>;
 }
