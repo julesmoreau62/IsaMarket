@@ -11,22 +11,8 @@ if (!SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const VIP_TEAMS = [
-  "Paris", "PSG", "Paris Saint Germain", "Lyon", "Olympique Lyonnais", "Monaco", "Lille", "Strasbourg", "Rennes", "Stade Rennais", "Marseille", "Olympique de Marseille", "Nantes", "Guingamp",
-  "Barcelona", "Real Madrid", "Atletico Madrid", "Sevilla",
-  "Manchester City", "Manchester United", "Arsenal", "Chelsea", "Liverpool",
-  "France", "Spain", "England", "Italy", "Germany", "Norway", "Denmark", "Croatia", "Portugal",
-  "San Antonio Spurs", "Philadelphia 76ers",
-  "Sinner", "Alcaraz", "Djokovic", "Medvedev", "Zverev", "Fils", "Swiatek", "Sabalenka", "Gauff", "Rybakina", "Pegula"
-];
-
-function isVipMatch(home, away, sportKey) {
-  if (sportKey === 'soccer_uefa_champs_league' || sportKey === 'rugby_union_six_nations') return true;
-  return VIP_TEAMS.some(t => 
-    home.toLowerCase().includes(t.toLowerCase()) || 
-    away.toLowerCase().includes(t.toLowerCase())
-  );
-}
+const SPORT_LOOKAHEAD_HOURS = 72;
+const MAX_NEW_SPORT_DRAFTS = 10;
 
 const MORNING_SPORTS_TO_SCAN = [
   'soccer_uefa_champs_league',
@@ -69,7 +55,7 @@ async function updateOddsAndCreateDrafts() {
 
   const now = new Date();
   const morningInParis = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hourCycle: "h23" }).format(now)) < 12;
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const sportWindowEnd = new Date(now.getTime() + SPORT_LOOKAHEAD_HOURS * 60 * 60 * 1000);
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // ==========================================
@@ -206,9 +192,10 @@ async function updateOddsAndCreateDrafts() {
             continue;
           }
 
-          if (morningInParis && newSportCount < 10) {
+          if (morningInParis && newSportCount < MAX_NEW_SPORT_DRAFTS) {
             const matchTime = new Date(match.commence_time);
-            if (matchTime > now && matchTime <= tomorrow && isVipMatch(match.home_team, match.away_team, sport)) {
+            // All teams in the scanned competitions are eligible during the next 72 hours.
+            if (matchTime > now && matchTime <= sportWindowEnd) {
               const outcomes = h2h.outcomes.map(o => {
                 let label = o.name; if (label === "Draw") label = "Match Nul";
                 return {
