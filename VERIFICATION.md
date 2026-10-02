@@ -1,5 +1,7 @@
 # Vérifications ISAMARKET — 22 septembre 2026
 
+> Mise à jour : voir [l'audit du 2 octobre 2026](AUDIT-2026-10-02.md). Le serveur actuel utilise plusieurs résultats et des cotes fixes. Les résultats historiques ci-dessous concernent l'ancien schéma et ne certifient pas le fonctionnement actuel.
+
 ## Résultats obtenus
 
 - TypeScript : `node node_modules/typescript/bin/tsc --noEmit`, réussi.
