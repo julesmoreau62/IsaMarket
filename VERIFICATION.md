@@ -2,6 +2,8 @@
 
 > Mise à jour : voir [l'audit du 2 octobre 2026](AUDIT-2026-10-02.md). Le serveur actuel utilise plusieurs résultats et des cotes fixes. Les résultats historiques ci-dessous concernent l'ancien schéma et ne certifient pas le fonctionnement actuel.
 
+> Combinés ajoutés le 2 octobre 2026 : voir [les règles et les vérifications actuelles](COMBINES.md).
+
 ## Résultats obtenus
 
 - TypeScript : `node node_modules/typescript/bin/tsc --noEmit`, réussi.

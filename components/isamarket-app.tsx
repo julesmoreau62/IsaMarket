@@ -59,6 +59,11 @@ type Wager = {
   payout: number | null; result: "open" | "won" | "lost" | "refunded"; placed_at: string;
   subjects?: Market | null;
 };
+type CombinedSelection = { subject_id: string; side: string; odds: number };
+type CombinedWager = Omit<Wager, "subject_id" | "side" | "subjects"> & {
+  combined_wager_legs: { id: string; subject_id: string; side: string; odds: number; subjects: Market | null }[];
+};
+
 type Leader = {
   user_id: string; username: string; avatar_url: string | null; net_profit: number;
   settled_wagers: number; won_wagers: number; success_rate: number;
@@ -110,6 +115,9 @@ export function IsamarketApp() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [wagers, setWagers] = useState<Wager[]>([]);
+  const [combinedWagers, setCombinedWagers] = useState<CombinedWager[]>([]);
+  const [selections, setSelections] = useState<CombinedSelection[]>([]);
+  const [combinedOpen, setCombinedOpen] = useState(false);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [members, setMembers] = useState<MemberRow[]>([]);
@@ -142,20 +150,22 @@ export function IsamarketApp() {
   const loadData = useCallback(async (user: User, role?: Role) => {
     setLoadingData(true);
     try {
-      const [profileRes, walletRes, marketsRes, wagersRes, leadersRes] = await Promise.all([
+      const [profileRes, walletRes, marketsRes, wagersRes, leadersRes, combinedRes] = await Promise.all([
         supabase.from("profiles").select("user_id, username, avatar_url").eq("user_id", user.id).single(),
         supabase.from("wallets").select("user_id, balance").eq("user_id", user.id).single(),
         supabase.from("subject_market_stats").select("*").order("created_at", { ascending: false }),
         supabase.from("wagers").select("*, subjects:subject_id(*)").eq("user_id", user.id).order("placed_at", { ascending: false }),
         supabase.from("leaderboard").select("*").order("net_profit", { ascending: false }),
+        supabase.from("combined_wagers").select("*, combined_wager_legs(*, subjects:subject_id(*))").eq("user_id", user.id).order("placed_at", { ascending: false }),
       ]);
-      const firstError = [profileRes, walletRes, marketsRes, wagersRes, leadersRes].find((item) => item.error)?.error;
+      const firstError = [profileRes, walletRes, marketsRes, wagersRes, leadersRes, combinedRes].find((item) => item.error)?.error;
       if (sessionUserId.current !== user.id) return;
       if (firstError) throw firstError;
       setProfile(profileRes.data as Profile);
       setWallet(walletRes.data as Wallet);
       setMarkets((marketsRes.data || []) as Market[]);
       setWagers((wagersRes.data || []) as Wager[]);
+      setCombinedWagers((combinedRes.data || []) as CombinedWager[]);
       setLeaders((leadersRes.data || []) as Leader[]);
       setDataError(null);
       setSelected((current) => current ? (marketsRes.data || []).find((item) => item.id === current.id) as Market || null : null);
@@ -203,7 +213,7 @@ export function IsamarketApp() {
         setProfile(null);
         setWallet(null);
         setMarkets([]);
-        setWagers([]); setLeaders([]); setReports([]); setMembers([]);
+        setWagers([]); setCombinedWagers([]); setSelections([]); setCombinedOpen(false); setLeaders([]); setReports([]); setMembers([]);
         setSelected(null); setCreateOpen(false); setPage("marches");
         setRecovering(false); setAuthError(null); setDataError(null); setBooting(false);
       }
@@ -244,6 +254,7 @@ export function IsamarketApp() {
     const channel = supabase.channel("isamarket-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "subjects" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "wagers" }, schedule)
+      .on("postgres_changes", { event: "*", schema: "public", table: "combined_wagers" }, schedule)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "odds_history" }, schedule)
       .subscribe((status) => setLive(status === "SUBSCRIBED"));
     const fallback = setInterval(schedule, 30000);
@@ -300,9 +311,9 @@ export function IsamarketApp() {
 
   const content: Record<Page, ReactNode> = {
     marches: <MarketsPage markets={markets} currentUserId={session.user.id} loading={loadingData} onSelect={setSelected} onCreate={() => setCreateOpen(true)} />,
-    paris: <MyBetsPage wagers={wagers} />,
+    paris: <MyBetsPage wagers={wagers} combinedWagers={combinedWagers} />,
     classement: <LeaderboardPage leaders={leaders} />,
-    profil: <ProfilePage user={session.user} profile={profile} wallet={wallet} wagers={wagers} onSaved={refresh} />,
+    profil: <ProfilePage user={session.user} profile={profile} wallet={wallet} wagers={wagers} combinedWagers={combinedWagers} onSaved={refresh} />,
     admin: <AdminPage markets={markets} reports={reports} members={members} currentUserId={session.user.id} onChanged={refresh} />,
   };
 
@@ -310,7 +321,7 @@ export function IsamarketApp() {
     <div className="min-h-screen bg-[#f5f7fb] text-[#10213b]">
       <Toaster richColors position="top-right" />
       <header className="sticky top-0 z-40 border-b border-[#dfe4ec] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-[72px] max-w-[1500px] items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-[72px] max-w-[1500px] items-center gap-2 px-4 sm:gap-4 sm:px-6">
           <button className="mr-1 lg:hidden" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Ouvrir le menu"><Menu /></button>
           <button className="flex items-center gap-3" onClick={() => setPage("marches")}>
             <Image src="/logo.png" alt="" width={42} height={42} className="rounded-full" priority />
@@ -321,6 +332,7 @@ export function IsamarketApp() {
               <CircleDollarSign className="size-4 text-[#d84f7a]" />
               {squid(wallet?.balance || 0)} Squids
             </div>
+            <Button variant="outline" className="px-2 text-xs sm:px-3 sm:text-sm" onClick={() => setCombinedOpen(true)} aria-label={`Ouvrir le combiné, ${selections.length} sélections`}>Combiné ({selections.length}/5)</Button>
             <Button onClick={() => setCreateOpen(true)} className="bg-[#ed6f96] font-bold text-[#10213b] hover:bg-[#e45e8a]">
               <Plus className="size-4" /><span className="hidden sm:inline">Créer un sujet</span>
             </Button>
@@ -356,7 +368,12 @@ export function IsamarketApp() {
       </div>
 
       <CreateMarketDialog currentUserId={session.user.id} key={createOpen ? "open" : "closed"} quotaUsed={membership?.role !== "admin" && markets.some((market) => market.creator_id === session.user.id && market.creation_day === new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()))} open={createOpen} onOpenChange={setCreateOpen} onCreated={refresh} />
-      <MarketDialog key={selected?.id || "none"} market={selected} user={session.user} balance={wallet?.balance || 0} onOpenChange={(open) => !open && setSelected(null)} onChanged={async () => {
+      <CombinedWagerDialog open={combinedOpen} onOpenChange={setCombinedOpen} selections={selections} onSelectionsChange={setSelections} markets={markets} balance={wallet?.balance || 0} onPlaced={async () => { setSelections([]); setCombinedOpen(false); setPage("paris"); await refresh(); }} />
+      <MarketDialog onAddCombined={(selection) => {
+        if (selections.length >= 5 && !selections.some((item) => item.subject_id === selection.subject_id)) { toast.error("Ton combiné contient déjà 5 sélections."); return; }
+        setSelections((current) => [...current.filter((item) => item.subject_id !== selection.subject_id), selection]);
+        setSelected(null); toast.success("Sélection ajoutée au combiné.");
+      }} key={selected?.id || "none"} market={selected} user={session.user} balance={wallet?.balance || 0} onOpenChange={(open) => !open && setSelected(null)} onChanged={async () => {
         await refresh();
         if (selected) {
           const latest = await supabase.from("subject_market_stats").select("*").eq("id", selected.id).single();
@@ -609,7 +626,7 @@ function CreateMarketDialog({ open, onOpenChange, onCreated, quotaUsed, currentU
   </form></DialogContent></Dialog>;
 }
 
-function MarketDialog({ market, user, balance, onOpenChange, onChanged }: { market: Market | null; user: User; balance: number; onOpenChange: (open: boolean) => void; onChanged: () => Promise<void> }) {
+function MarketDialog({ market, user, balance, onOpenChange, onChanged, onAddCombined }: { market: Market | null; user: User; balance: number; onOpenChange: (open: boolean) => void; onChanged: () => Promise<void>; onAddCombined: (selection: CombinedSelection) => void }) {
   const [side, setSide] = useState<string>(market?.outcomes_stats?.[0]?.id || "");
   const [amount, setAmount] = useState("50");
   const [busy, setBusy] = useState(false);
@@ -664,20 +681,23 @@ function MarketDialog({ market, user, balance, onOpenChange, onChanged }: { mark
         </button>
       ))}
     </div>
-      {open ? <><div className="mt-6 space-y-2"><Label htmlFor="amount">Montant de la mise</Label><p className="text-sm text-muted-foreground">Disponible : {squid(balance)} Squids</p><div className="relative"><Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={1} step={1} max={balance} inputMode="numeric" className="h-12 pr-20 text-lg font-bold" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">Squids</span></div></div><div className="mt-4 rounded-xl bg-white p-4 text-sm"><div className="flex justify-between"><span>Cote</span><strong>{odd(simulatedOdd)}</strong></div><div className="mt-2 flex justify-between"><span>Gain potentiel</span><strong>{potential ? "= " + squid(potential) + " S" : "—"}</strong></div><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Le gain final est calculé avec cette cote fixe.</p></div><Button disabled={busy || !simulatedOdd || !Number.isSafeInteger(value) || value <= 0 || value > balance || !side} onClick={() => void wager()} className={cn("mt-5 h-12 w-full font-black text-white bg-[#16876c] hover:bg-[#0f7058]")}>{busy ? <Loader2 className="mx-auto animate-spin" /> : "Valider ma mise"}</Button></> : <div className="mt-6 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 p-5 text-center"><LockKeyhole className="mx-auto size-5 text-muted-foreground" /><p className="mt-2 font-bold">Mises closes</p><p className="text-sm text-muted-foreground">{market.status === "open" ? "En attente du résultat." : "Ce sujet est terminé."}</p></div>}
+      {open ? <><div className="mt-6 space-y-2"><Label htmlFor="amount">Montant de la mise</Label><p className="text-sm text-muted-foreground">Disponible : {squid(balance)} Squids</p><div className="relative"><Input id="amount" value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={1} step={1} max={balance} inputMode="numeric" className="h-12 pr-20 text-lg font-bold" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">Squids</span></div></div><div className="mt-4 rounded-xl bg-white p-4 text-sm"><div className="flex justify-between"><span>Cote</span><strong>{odd(simulatedOdd)}</strong></div><div className="mt-2 flex justify-between"><span>Gain potentiel</span><strong>{potential ? "= " + squid(potential) + " S" : "—"}</strong></div><p className="mt-3 text-xs leading-relaxed text-muted-foreground">Le gain final est calculé avec cette cote fixe.</p></div><Button disabled={busy || !simulatedOdd || !Number.isSafeInteger(value) || value <= 0 || value > balance || !side} onClick={() => void wager()} className={cn("mt-5 h-12 w-full font-black text-white bg-[#16876c] hover:bg-[#0f7058]")}>{busy ? <Loader2 className="mx-auto animate-spin" /> : "Valider ma mise"}</Button><Button variant="outline" className="mt-3 h-12 w-full" disabled={busy || !simulatedOdd || !side} onClick={() => simulatedOdd && onAddCombined({ subject_id: market.id, side, odds: simulatedOdd })}>Ajouter au combiné</Button></> : <div className="mt-6 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 p-5 text-center"><LockKeyhole className="mx-auto size-5 text-muted-foreground" /><p className="mt-2 font-bold">Mises closes</p><p className="text-sm text-muted-foreground">{market.status === "open" ? "En attente du résultat." : "Ce sujet est terminé."}</p></div>}
     </aside>
   </div></DialogContent></Dialog>
   <Dialog open={reportOpen} onOpenChange={setReportOpen}><DialogContent><DialogHeader><DialogTitle>Signaler ce sujet</DialogTitle><DialogDescription>Explique clairement le problème à l’administrateur.</DialogDescription></DialogHeader><form onSubmit={report} className="space-y-4"><Textarea name="reason" required minLength={10} placeholder="Pourquoi ce sujet doit-il être examiné ?" /><DialogFooter><Button type="button" variant="outline" onClick={() => setReportOpen(false)}>Annuler</Button><Button type="submit">Envoyer</Button></DialogFooter></form></DialogContent></Dialog></>;
 }
 
 
-function MyBetsPage({ wagers }: { wagers: Wager[] }) {
+function MyBetsPage({ wagers, combinedWagers }: { wagers: Wager[]; combinedWagers: CombinedWager[] }) {
+  const openCombined = combinedWagers.filter((wager) => wager.result === "open");
+  const settledCombined = combinedWagers.filter((wager) => wager.result !== "open");
   const open = wagers.filter((wager) => wager.result === "open");
   const settled = wagers.filter((wager) => wager.result !== "open");
-  return <><PageHeading eyebrow="Portefeuille" title="Mes paris" /><h2 className="mb-4 text-xl font-black">En cours <span className="text-muted-foreground">({open.length})</span></h2><BetList wagers={open} empty="Tu n’as aucune mise en cours." /><div className="mt-10"><h2 className="mb-4 text-xl font-black">Historique <span className="text-muted-foreground">({settled.length})</span></h2><BetList wagers={settled} empty="Tes résultats apparaîtront ici." /></div></>;
+  return <><PageHeading eyebrow="Portefeuille" title="Mes paris" /><h2 className="mb-4 text-xl font-black">En cours <span className="text-muted-foreground">({open.length + openCombined.length})</span></h2><CombinedBetList wagers={openCombined} /><BetList wagers={open} empty={openCombined.length ? "" : "Tu n’as aucune mise en cours."} /><div className="mt-10"><h2 className="mb-4 text-xl font-black">Historique <span className="text-muted-foreground">({settled.length + settledCombined.length})</span></h2><CombinedBetList wagers={settledCombined} /><BetList wagers={settled} empty={settledCombined.length ? "" : "Tes résultats apparaîtront ici."} /></div></>;
 }
 
 function BetList({ wagers, empty }: { wagers: Wager[]; empty: string }) {
+  if (!wagers.length && !empty) return null;
   if (!wagers.length) return <Empty className="min-h-44 border bg-white"><EmptyHeader><EmptyMedia variant="icon"><WalletCards /></EmptyMedia><EmptyTitle>{empty}</EmptyTitle></EmptyHeader></Empty>;
   return <div className="space-y-3">{wagers.map((wager) => <div key={wager.id} className="flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-sm sm:flex-row sm:items-center"><div className="flex size-12 shrink-0 items-center justify-center rounded-xl font-black bg-[#e7f8f3] text-[#0d725c] text-[10px] px-1 text-center overflow-hidden">{wager.subjects?.outcomes?.find(o => o.id === wager.side)?.label?.slice(0,4).toUpperCase() || wager.side.slice(0,4).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate font-bold">{wager.subjects?.title || "Sujet"}</p><p className="mt-1 text-sm text-muted-foreground">{compactDate.format(new Date(wager.placed_at))} · Mise de {squid(wager.amount)} Squids</p></div><div className="text-left sm:text-right"><Badge variant={wager.result === "won" ? "default" : wager.result === "lost" ? "destructive" : "secondary"}>{wager.result === "open" ? "En cours" : wager.result === "won" ? "Gagné" : wager.result === "lost" ? "Perdu" : "Remboursé"}</Badge>{wager.payout !== null && <p className="mt-1 font-black">{squid(wager.payout)} S</p>}</div></div>)}</div>;
 }
@@ -686,10 +706,10 @@ function LeaderboardPage({ leaders }: { leaders: Leader[] }) {
   return <><PageHeading eyebrow="Classement général" title="Le podium des Squids" /><div className="mb-7 grid gap-4 md:grid-cols-3">{[1,0,2].map((index, visual) => { const leader = leaders[index]; if (!leader) return <div key={index} className="hidden md:block" />; return <div key={leader.user_id} className={cn("rounded-2xl border bg-white p-6 text-center shadow-sm", visual === 1 && "md:-translate-y-3 md:border-[#ed6f96]")}><div className="mx-auto mb-3 flex size-9 items-center justify-center rounded-full bg-[#142846] font-black text-white">{index + 1}</div><AvatarView profile={leader} className="mx-auto size-14" /><p className="mt-3 font-black">{leader.username}</p><p className={cn("mt-1 text-2xl font-black", leader.net_profit >= 0 ? "text-[#16876c]" : "text-[#c7446d]")}>{leader.net_profit >= 0 ? "+" : ""}{squid(leader.net_profit)} S</p><p className="text-xs text-muted-foreground">bénéfice net réalisé</p></div>; })}</div><div className="overflow-hidden rounded-2xl border bg-white shadow-sm"><Table><TableHeader><TableRow><TableHead className="w-16">Rang</TableHead><TableHead>Joueur</TableHead><TableHead className="text-right">Bénéfice net</TableHead><TableHead className="text-right">Réussite</TableHead><TableHead className="text-right">Paris réglés</TableHead></TableRow></TableHeader><TableBody>{leaders.map((leader, index) => <TableRow key={leader.user_id}><TableCell className="font-black">{index + 1}</TableCell><TableCell><div className="flex items-center gap-3"><AvatarView profile={leader} /><span className="font-bold">{leader.username}</span></div></TableCell><TableCell className={cn("text-right font-black", leader.net_profit >= 0 ? "text-[#16876c]" : "text-[#c7446d]")}>{leader.net_profit >= 0 ? "+" : ""}{squid(leader.net_profit)} S</TableCell><TableCell className="text-right">{leader.success_rate}%</TableCell><TableCell className="text-right">{leader.settled_wagers}</TableCell></TableRow>)}</TableBody></Table>{!leaders.length && <p className="p-10 text-center text-muted-foreground">Le classement démarrera après les premiers paris.</p>}</div><p className="mt-4 text-sm text-muted-foreground">Seuls les paris terminés comptent. Les dotations initiales et remboursements ne sont pas des gains.</p></>;
 }
 
-function ProfilePage({ user, profile, wallet, wagers, onSaved }: { user: User; profile: Profile | null; wallet: Wallet | null; wagers: Wager[]; onSaved: () => Promise<void> }) {
+function ProfilePage({ user, profile, wallet, wagers, combinedWagers, onSaved }: { user: User; profile: Profile | null; wallet: Wallet | null; wagers: Wager[]; combinedWagers: CombinedWager[]; onSaved: () => Promise<void> }) {
   const [username, setUsername] = useState(profile?.username || "");
   const [avatar, setAvatar] = useState(profile?.avatar_url || "");
-  const engaged = wagers.filter((wager) => wager.result === "open").reduce((sum, wager) => sum + Number(wager.amount), 0);
+  const engaged = [...wagers, ...combinedWagers].filter((wager) => wager.result === "open").reduce((sum, wager) => sum + Number(wager.amount), 0);
   async function save(event: FormEvent) {
     event.preventDefault();
     const { error } = await supabase.from("profiles").update({ username: username.trim(), avatar_url: avatar.trim() || null, updated_at: new Date().toISOString() }).eq("user_id", user.id).select("user_id").single();
@@ -756,4 +776,61 @@ function AdminPage({ markets, reports, members, currentUserId, onChanged }: { ma
     <button onClick={() => setOutcome("cancelled")} className={cn("rounded-xl border-2 p-3 font-bold", outcome === "cancelled" ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>Annuler</button>
     <button onClick={() => setOutcome("close")} className={cn("rounded-xl border-2 p-3 font-bold", outcome === "close" ? "border-[#142846] bg-[#edf1f7]" : "border-border")}>Clôturer sans résoudre</button>
   </div><Textarea value={note} onChange={(e) => setNote(e.target.value)} minLength={10} maxLength={2000} aria-label="Justification de la décision" placeholder="Justification précise du résultat…" /></div><DialogFooter><Button variant="outline" onClick={() => setSettling(null)}>Fermer</Button><Button disabled={busy || note.trim().length < 10} onClick={() => void settle()}>{busy ? "Traitement…" : outcome === "close" ? "Clôturer les mises" : "Confirmer et payer"}</Button></DialogFooter></DialogContent></Dialog></>;
+}
+
+const MAX_COMBINED_RETURN = 100000;
+
+function CombinedWagerDialog({ open, onOpenChange, selections, onSelectionsChange, markets, balance, onPlaced }: {
+  open: boolean; onOpenChange: (open: boolean) => void; selections: CombinedSelection[];
+  onSelectionsChange: (selections: CombinedSelection[]) => void; markets: Market[]; balance: number; onPlaced: () => Promise<void>;
+}) {
+  const [amount, setAmount] = useState("50");
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  const attempt = useRef<{ signature: string; id: string } | null>(null);
+  const value = Number(amount);
+  const totalOdds = selections.reduce((total, selection) => total * selection.odds, 1);
+  const potential = Math.floor(value * totalOdds);
+  const entries = selections.map((selection) => {
+    const market = markets.find((item) => item.id === selection.subject_id);
+    const outcome = market?.outcomes_stats.find((item) => item.id === selection.side);
+    const closed = !market || market.status !== "open" || Boolean(market.betting_closed_at) || new Date(market.closes_at) <= new Date();
+    const changed = Number(outcome?.odds) !== selection.odds;
+    return { selection, market, outcome, closed, changed };
+  });
+  const valid = selections.length >= 2 && selections.length <= 5 && Number.isSafeInteger(value) && value > 0 && value <= balance && potential <= MAX_COMBINED_RETURN && entries.every((entry) => !entry.closed && !entry.changed);
+
+  async function place() {
+    if (lock.current || !valid) return;
+    const sorted = [...selections].sort((a, b) => a.subject_id.localeCompare(b.subject_id));
+    const signature = JSON.stringify({ selections: sorted, amount: value });
+    if (attempt.current?.signature !== signature) attempt.current = { signature, id: crypto.randomUUID() };
+    lock.current = true; setBusy(true);
+    try {
+      const { error } = await supabase.rpc("place_combined_wager", { p_selections: sorted, p_amount: value, p_request_id: attempt.current.id });
+      if (error) throw error;
+      attempt.current = null;
+      toast.success("Combiné validé. Ta mise est enregistrée.");
+      await onPlaced();
+    } catch (error) { toast.error(message(error)); }
+    finally { lock.current = false; setBusy(false); }
+  }
+
+  return <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>Mon combiné · {selections.length}/5</DialogTitle><DialogDescription>Une mise unique pour 2 à 5 sujets. Toutes les sélections doivent gagner.</DialogDescription></DialogHeader>
+    {!selections.length && <p className="rounded-xl bg-muted p-5 text-sm">Ouvre un sujet, choisis un résultat puis clique sur « Ajouter au combiné ».</p>}
+    <div className="space-y-3">{entries.map(({ selection, market, outcome, closed, changed }) => <div key={selection.subject_id} className="rounded-xl border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-bold">{market?.title || "Sujet indisponible"}</p><p className="mt-1 text-sm">{outcome?.label || selection.side} · {odd(selection.odds)}</p></div><Button variant="ghost" size="sm" disabled={busy} onClick={() => onSelectionsChange(selections.filter((item) => item.subject_id !== selection.subject_id))} aria-label={`Retirer ${market?.title || "ce sujet"}`}>Retirer</Button></div>
+      {closed ? <p role="alert" className="mt-2 text-sm text-red-700">Ce sujet est fermé ou inaccessible. Retire cette sélection.</p> : changed && <div className="mt-2 text-sm text-amber-800"><p>La cote a changé : {odd(outcome?.odds)}.</p><Button variant="outline" size="sm" disabled={busy || !outcome || !Number.isFinite(Number(outcome.odds)) || Number(outcome.odds) <= 1 || Number(outcome.odds) > 100} onClick={() => outcome && onSelectionsChange(selections.map((item) => item.subject_id === selection.subject_id ? { ...item, odds: Number(outcome.odds) } : item))}>Accepter la nouvelle cote</Button></div>}
+    </div>)}</div>
+    <div className="space-y-2"><Label htmlFor="combined-amount">Mise en Squids</Label><Input id="combined-amount" type="number" min={1} step={1} max={balance} value={amount} disabled={busy} onChange={(event) => setAmount(event.target.value)} /><p className="text-sm text-muted-foreground">Disponible : {squid(balance)} Squids</p></div>
+    <div className="rounded-xl bg-[#e7f8f3] p-4"><div className="flex justify-between"><span>Cote totale</span><strong>{selections.length ? odd(totalOdds) : "—"}</strong></div><div className="mt-2 flex justify-between"><span>Retour potentiel, mise incluse</span><strong>{selections.length && Number.isSafeInteger(value) && value > 0 ? `${squid(potential)} S` : "—"}</strong></div></div>
+    {potential > MAX_COMBINED_RETURN && selections.length > 0 && <p role="alert" className="text-sm text-red-700">Le retour maximal est de {squid(MAX_COMBINED_RETURN)} Squids. Réduis ta mise ou retire une sélection.</p>}
+    <p className="text-xs leading-relaxed text-muted-foreground">Une seule sélection par sujet. Une sélection perdante fait perdre le ticket. Une sélection annulée compte à une cote de 1 ; si tous les sujets sont annulés, la mise est remboursée. Les cotes sont figées à la validation.</p>
+    <DialogFooter><Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Continuer mes sélections</Button><Button disabled={busy || !valid} onClick={() => void place()} className="bg-[#16876c] text-white hover:bg-[#0f7058]">{busy ? "Validation…" : "Valider mon combiné"}</Button></DialogFooter>
+  </DialogContent></Dialog>;
+}
+
+function CombinedBetList({ wagers }: { wagers: CombinedWager[] }) {
+  return <div className="space-y-3 mb-3">{wagers.map((wager) => <div key={wager.id} className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-4"><div><Badge variant="outline">Combiné · {wager.combined_wager_legs.length} sélections</Badge><p className="mt-2 text-sm text-muted-foreground">{compactDate.format(new Date(wager.placed_at))} · Mise de {squid(wager.amount)} S · Cote initiale {odd(wager.odds)}</p></div><div className="text-right"><Badge variant={wager.result === "won" ? "default" : wager.result === "lost" ? "destructive" : "secondary"}>{wager.result === "open" ? "En cours" : wager.result === "won" ? "Gagné" : wager.result === "lost" ? "Perdu" : "Remboursé"}</Badge>{wager.payout !== null && <p className="mt-1 font-black">{squid(wager.payout)} S</p>}</div></div>
+    <ul className="mt-4 space-y-2">{wager.combined_wager_legs.map((leg) => <li key={leg.id} className="flex flex-wrap justify-between gap-2 rounded-lg bg-[#f5f7fb] px-3 py-2 text-sm"><div><p className="font-semibold">{leg.subjects?.title || "Sujet indisponible"}</p><p className="text-muted-foreground">{leg.subjects?.outcomes.find((outcome) => outcome.id === leg.side)?.label || leg.side} · {odd(leg.odds)}</p></div><span>{leg.subjects?.status === "cancelled" ? "Annulé · ×1" : leg.subjects?.status === "resolved" ? leg.subjects.winning_outcome_id === leg.side ? "Gagné" : "Perdu" : "En attente"}</span></li>)}</ul>
+  </div>)}</div>;
 }
