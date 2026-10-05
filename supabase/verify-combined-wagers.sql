@@ -48,9 +48,11 @@ begin
   assert (select balance=990 from public.wallets where user_id=a),'Retry debited twice';
   assert (select odds=6 from public.combined_wagers where id=win),'Wrong total odds';
   assert (select count(*)=2 from public.combined_wager_legs where combined_wager_id=win),'Wrong leg count';
+  assert (select wager_count=1 and total_pool=10 and combined_wager_count=1 from public.subject_market_stats where id=markets[1]),'Combined-only stake missing from market';
   perform pg_temp.combo_expect_error(format('select public.place_combined_wager(%L::jsonb,11,%L)',selections,req),'déjà utilisé');
   perform pg_temp.combo_expect_error(format('select public.place_combined_wager(%L::jsonb,10,%L)',jsonb_set(selections,'{0,side}','"no"'),req),'déjà utilisé');
   perform public.place_wager(markets[1],'yes',7,gen_random_uuid());
+  assert (select wager_count=2 and total_pool=17 and (outcomes_stats->0->>'pool')::bigint=17 from public.subject_market_stats where id=markets[1]),'Mixed stakes counted incorrectly';
   selections:=jsonb_build_array(jsonb_build_object('subject_id',markets[3],'side','yes','odds',2),jsonb_build_object('subject_id',markets[4],'side','yes','odds',2));
   receipt:=public.place_combined_wager(selections,10,gen_random_uuid()); loss:=(receipt->>'wager_id')::uuid;
   selections:=jsonb_build_array(jsonb_build_object('subject_id',markets[5],'side','yes','odds',2),jsonb_build_object('subject_id',markets[6],'side','no','odds',3));
@@ -75,16 +77,16 @@ begin
   perform public.resolve_subject(markets[4],'yes','Décision de test combiné.');
   assert (select result='lost' and payout=0 from public.combined_wagers where id=loss),'Lost ticket changed';
   perform public.resolve_subject(markets[5],'cancelled','Décision de test combiné.');
-  assert (select result='open' from public.combined_wagers where id=partial_void),'Void settled prematurely';
+  assert (select result='refunded' and payout=10 from public.combined_wagers where id=partial_void),'Partial cancellation did not refund immediately';
   perform public.resolve_subject(markets[6],'no','Décision de test combiné.');
-  assert (select result='won' and payout=30 from public.combined_wagers where id=partial_void),'Void leg not odds 1';
+  assert (select result='refunded' and payout=10 from public.combined_wagers where id=partial_void),'Refunded ticket received winnings';
   perform public.resolve_subject(markets[7],'cancelled','Décision de test combiné.');
   perform public.resolve_subject(markets[8],'cancelled','Décision de test combiné.');
   assert (select result='refunded' and payout=10 from public.combined_wagers where id=all_void),'All-void refund incorrect';
-  assert (select net_profit=67 and settled_wagers=4 and won_wagers=3 and success_rate=75 from public.leaderboard where user_id=a),'Leaderboard incorrect';
+  assert (select net_profit=47 and settled_wagers=3 and won_wagers=2 and success_rate=66.7 from public.leaderboard where user_id=a),'Leaderboard incorrect';
   execute 'reset role';
-  assert (select balance=1067 from public.wallets where user_id=a),'Final balance incorrect';
-  assert (select sum(amount)=1067 from public.wallet_transactions where user_id=a),'Ledger mismatch';
+  assert (select balance=1047 from public.wallets where user_id=a),'Final balance incorrect';
+  assert (select sum(amount)=1047 from public.wallet_transactions where user_id=a),'Ledger mismatch';
   assert (select count(*)=1 from public.wallet_transactions where combined_wager_id=win and kind='payout'),'Duplicate payout movement';
   -- A fresh ticket must reject excluded, expired and missing subjects atomically.
   insert into public.subjects(creator_id,title,category,closes_at,outcomes)
@@ -101,7 +103,7 @@ begin
   perform pg_temp.combo_expect_error(format('select public.place_combined_wager(%L::jsonb,1,%L)',selections,gen_random_uuid()),'mises sont closes');
   selections:=jsonb_set(selections,'{0,subject_id}',to_jsonb(gen_random_uuid()::text));
   perform pg_temp.combo_expect_error(format('select public.place_combined_wager(%L::jsonb,1,%L)',selections,gen_random_uuid()),'introuvable');
-  assert (select balance=1067 from public.wallets where user_id=a),'Rejected ticket debited wallet';
+  assert (select balance=1047 from public.wallets where user_id=a),'Rejected ticket debited wallet';
   retry:=public.place_combined_wager(jsonb_build_array(jsonb_build_object('subject_id',markets[1],'side','yes','odds',2),jsonb_build_object('subject_id',markets[2],'side','no','odds',3)),10,req);
   assert (retry->>'already_placed')::boolean,'Retry after settlement failed';
   execute 'reset role'; execute 'set local role anon';

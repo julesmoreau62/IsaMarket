@@ -1,6 +1,6 @@
 # ISAMARKET
 
-Site privé de pronostics pour une classe, en français. Chaque membre reçoit une fois 1 000 Squids, monnaie fictive sans achat, retrait ou conversion.
+Site de pronostics pour une classe, en français. Chaque membre reçoit une dotation initiale de 1 000 Squids, monnaie fictive sans achat, retrait ou conversion. Le bonus de 1 000 Squids par jour de visite connectée est protégé côté serveur, une fois par jour à Paris, sans crédit pour les jours d'absence.
 
 ## Application
 
@@ -28,7 +28,7 @@ npm run build
 npm start
 ```
 
-Le starter Vinext/React/TypeScript et ses composants sont conservés. Le build produit un Worker Cloudflare et les ressources statiques sous `dist/`. Le projet Sites existant est identifié dans `.openai/hosting.json`.
+Le starter Vinext/React/TypeScript et ses composants sont conservés. Le build produit un Worker Cloudflare et les ressources statiques sous `dist/`. La publication du site est gérée par Netlify depuis le dépôt GitHub `julesmoreau62/IsaMarket`. Le fichier `.openai/hosting.json` est une configuration historique ; ne pas lancer de publication Sites pour ce projet.
 
 ## Base de données
 
@@ -49,5 +49,7 @@ L’administrateur applicatif est `tanguypavat8@gmail.com`, après confirmation 
 4. Chaque membre crée son compte, confirme son e-mail et reçoit ses 1 000 Squids une seule fois.
 
 ## Vérification
+
+Voir `AUDIT-2026-10-05.md` pour les bugs des combinés, le bonus quotidien et le bot. La migration `20261005070250_fix_combined_stakes_cancellation_and_daily_login_rewards` est installée et les trois suites SQL passent sur le serveur. L'interface et le bot sont publiés via GitHub ; Netlify gère la mise en ligne du site. Les anciens fichiers de schéma décrivent le fonctionnement historique ; ne pas les rejouer sur la base actuelle à résultats multiples et cotes fixes.
 
 Voir `VERIFICATION.md` pour les résultats réellement obtenus et les vérifications qui nécessitent encore un compte confirmé. La suite `supabase/verify.sql` annule entièrement ses données de test. `scripts/verify-concurrency.mjs` exécute les essais simultanés dans une base PostgreSQL locale isolée, sans modifier Supabase.

@@ -2,15 +2,24 @@ name: IsaMarket Bot (Drafts & Odds Refresh)
 
 on:
   schedule:
-    # 8h00 et 14h00 (Heure de Paris été = 6h00 et 12h00 UTC)
-    - cron: '0 6,12 * * *'
-    # 20h30 (Heure de Paris été = 18h30 UTC)
-    - cron: '30 18 * * *'
+    # Avoid the hourly peak; timezone keeps local times stable across DST.
+    - cron: '7 8,14 * * *'
+      timezone: Europe/Paris
+    - cron: '30 20 * * *'
+      timezone: Europe/Paris
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isamarket-bot
+  cancel-in-progress: false
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,7 +30,10 @@ jobs:
           node-version: '24'
 
       - name: Install dependencies
-        run: npm install @supabase/supabase-js
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify Bot Script
+        run: node --test scripts/bot.test.mjs
 
       - name: Run Bot Script
         env:

@@ -1,5 +1,7 @@
 # Paris combinés — 2 octobre 2026
 
+Le correctif serveur du 5 octobre est installé sous la migration `20261005070250_fix_combined_stakes_cancellation_and_daily_login_rewards`. Il inclut les combinés dans les mises affichées et remplace l'annulation à cote 1 par un remboursement intégral dès qu'une sélection est annulée. Voir `AUDIT-2026-10-05.md` et `supabase/activity-rewards-and-combined-fixes.sql`. La description ci-dessous est historique ; la suite `verify-combined-wagers.sql` vérifie désormais la nouvelle règle et passe sur le serveur installé. L'interface accompagne le push GitHub et la publication Netlify.
+
 Implémentation : `components/isamarket-app.tsx` et `supabase/combined-wagers.sql`.
 Migration serveur installée : `20261002073914_add_combined_wagers` dans le projet ISAMarket (`xdjitzgqjsgcupwwipzz`). Le script SQL cible le schéma actuel à résultats multiples et cotes fixes ; il ne doit pas être réappliqué après cette migration.
 

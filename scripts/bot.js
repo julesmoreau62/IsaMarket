@@ -1,20 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://xdjitzgqjsgcupwwipzz.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ODDS_API_KEY = process.env.ODDS_API_KEY;
-
-if (!SUPABASE_KEY) {
-  console.error("ERREUR: SUPABASE_SERVICE_ROLE_KEY manquante.");
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+import { pathToFileURL } from 'node:url';
 
 const SPORT_LOOKAHEAD_HOURS = 72;
 const MAX_NEW_SPORT_DRAFTS = 10;
 
-const MORNING_SPORTS_TO_SCAN = [
+const DAILY_SPORTS_TO_SCAN = [
   'soccer_uefa_champs_league',
   'soccer_uefa_europa_league',
   'soccer_uefa_nations_league',
@@ -36,37 +26,67 @@ async function requireSuccess(query) {
   return data;
 }
 
-async function updateOddsAndCreateDrafts() {
-  console.log("🚀 Démarrage du Bot IsaMarket...");
+export function parisDay(now) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(now);
+  const part = (type) => parts.find((item) => item.type === type).value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
 
-  const adminData = await requireSuccess(supabase.from('memberships').select('user_id').eq('role', 'admin').limit(1).single());
+export async function updateOddsAndCreateDrafts({ supabase, oddsApiKey, fetchImpl = fetch, now = new Date(), logger = console }) {
+  const summary = { day: parisDay(now), sportCreated: 0, polymarketCreated: 0, errors: [] };
+  const reportError = (context, error) => {
+    summary.errors.push(`${context} : ${error.message}`);
+    logger.error(`${context} :`, error.message);
+  };
+  const fetchJson = async (url, source) => {
+    const response = await fetchImpl(url, { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`${source} : HTTP ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error(`Réponse ${source} invalide.`);
+    return data;
+  };
+  const insertDraft = async (draft) => {
+    // Do not recreate settled imports or fail on concurrent/repeated external IDs.
+    const rows = await requireSuccess(supabase.from('subjects')
+      .upsert(draft, { onConflict: 'external_id', ignoreDuplicates: true }).select('id'));
+    return Boolean(rows?.length);
+  };
+  const refreshOdds = async (subject, outcomes) => {
+    await requireSuccess(supabase.from('subjects').update({ outcomes })
+      .eq('id', subject.id).eq('conditions_locked', false)
+      .in('status', ['open', 'draft']).gt('closes_at', now.toISOString()));
+  };
+  logger.log("🚀 Démarrage du Bot IsaMarket...");
+
+  const adminData = await requireSuccess(supabase.from('memberships').select('user_id').eq('role', 'admin').eq('status', 'active').limit(1).single());
   if (!adminData) throw new Error("Aucun admin trouvé !");
   const adminId = adminData.user_id;
 
   const activeSubjects = await requireSuccess(supabase.from('subjects')
     .select('*')
-    .in('status', ['open', 'draft']));
+    .in('status', ['open', 'draft']).gt('closes_at', now.toISOString()));
+  const importedToday = await requireSuccess(supabase.from('subjects').select('category')
+    .eq('creation_day', summary.day).not('external_id', 'is', null));
+  let newPolyCount = importedToday.filter((subject) => subject.category === 'Polymarket').length;
+  let newSportCount = importedToday.filter((subject) => subject.category === 'Sport').length;
 
   if (!activeSubjects) throw new Error("Impossible de charger les sujets actifs.");
   const activePolymarket = activeSubjects.filter(s => s.category === 'Polymarket');
   const activeSports = activeSubjects.filter(s => s.category === 'Sport');
 
-  console.log(`📊 Paris actifs en base : ${activePolymarket.length} Polymarket, ${activeSports.length} Sports.`);
+  logger.log(`📊 Paris actifs en base : ${activePolymarket.length} Polymarket, ${activeSports.length} Sports.`);
 
-  const now = new Date();
-  const morningInParis = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hourCycle: "h23" }).format(now)) < 12;
   const sportWindowEnd = new Date(now.getTime() + SPORT_LOOKAHEAD_HOURS * 60 * 60 * 1000);
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // ==========================================
   // POLYMARKET
   // ==========================================
-  console.log("🌐 Scan Polymarket...");
+  logger.log("🌐 Scan Polymarket...");
   try {
-    const polyRes = await fetch("https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100");
-    if (!polyRes.ok) throw new Error(`Polymarket : HTTP ${polyRes.status}`);
-    const polyEvents = await polyRes.json();
-    if (!Array.isArray(polyEvents)) throw new Error("Réponse Polymarket invalide.");
+    const polyEvents = await fetchJson("https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100", 'Polymarket');
     
     // Refresh existants
     for (const sub of activePolymarket) {
@@ -88,15 +108,15 @@ async function updateOddsAndCreateDrafts() {
             if (existingOpt) existingOpt.odds = odds;
           });
           
-          await requireSuccess(supabase.from('subjects').update({ outcomes: newOutcomes }).eq('id', sub.id));
+          await refreshOdds(sub, newOutcomes);
         }
       }
     }
 
     // Création drafts
-    if (morningInParis) {
+    // A delayed morning job must still generate today's suggestions after noon.
+    if (newPolyCount < 2) {
       const BANNED = ["cricket", "nfl", "baseball", "india", "biden", "trump", "harris", "senate", "house", "congress", "gop"];
-      let newPolyCount = 0;
 
       for (const event of polyEvents) {
         if (newPolyCount >= 2) break; // Limite stricte : 2 paris Polymarket max par jour
@@ -105,12 +125,12 @@ async function updateOddsAndCreateDrafts() {
         const titleLower = event.title.toLowerCase();
         if (BANNED.some(w => titleLower.includes(w))) continue;
 
-        const primaryMarket = event.markets.sort((a, b) => Number(b.volume) - Number(a.volume))[0];
+        const primaryMarket = [...event.markets].sort((a, b) => Number(b.volume) - Number(a.volume))[0];
         if (Number(primaryMarket.volume) < 100000) continue;
         
         const endDate = new Date(primaryMarket.endDate);
         // On refuse les vieux, et on refuse ce qui finit dans plus de 7 jours (car < 24h c'est introuvable sur Poly)
-        if (endDate <= now || endDate > nextWeek) continue;
+        if (!Number.isFinite(endDate.getTime()) || endDate <= now || endDate > nextWeek) continue;
 
         const exists = activeSubjects.some(s => s.external_id === primaryMarket.id);
         if (exists) continue;
@@ -129,7 +149,7 @@ async function updateOddsAndCreateDrafts() {
         });
 
         if (outcomes.length >= 2) {
-          await requireSuccess(supabase.from('subjects').insert({
+          const inserted = await insertDraft({
             creator_id: adminId,
             title: event.title,
             category: 'Polymarket',
@@ -138,38 +158,39 @@ async function updateOddsAndCreateDrafts() {
             outcomes: outcomes,
             external_id: primaryMarket.id,
             status: 'draft'
-          }));
-          newPolyCount++;
-          console.log(`🆕 [Poly] Nouveau brouillon : ${event.title}`);
+          });
+          if (inserted) {
+            newPolyCount++; summary.polymarketCreated++;
+            logger.log(`🆕 [Poly] Nouveau brouillon : ${event.title}`);
+          }
         }
       }
     }
   } catch (e) {
-    process.exitCode = 1;
-    console.error("Erreur Polymarket :", e.message);
+    reportError('Erreur Polymarket', e);
   }
 
   // ==========================================
   // SPORTS
   // ==========================================
-  console.log("⚽ Scan The Odds API...");
+  logger.log("⚽ Scan The Odds API...");
   try {
-    let sportsToScan = new Set();
+    if (!oddsApiKey) throw new Error('ODDS_API_KEY manquante.');
+    const sportsToScan = new Set();
     activeSports.forEach(s => {
       if (s.external_id && s.external_id.includes('::')) sportsToScan.add(s.external_id.split('::')[0]);
     });
-    if (morningInParis) MORNING_SPORTS_TO_SCAN.forEach(s => sportsToScan.add(s));
-
-    let newSportCount = 0;
+    if (newSportCount < MAX_NEW_SPORT_DRAFTS) DAILY_SPORTS_TO_SCAN.forEach(s => sportsToScan.add(s));
+    // The sports endpoint is free of quota costs and excludes inactive competitions.
+    const availableSports = await fetchJson(`https://api.the-odds-api.com/v4/sports/?apiKey=${encodeURIComponent(oddsApiKey)}`, 'The Odds API');
+    const availableKeys = new Set(availableSports.filter(s => s.active !== false).map(s => s.key));
 
     for (const sport of sportsToScan) {
+      if (!availableKeys.has(sport)) continue;
+      if (newSportCount >= MAX_NEW_SPORT_DRAFTS && !activeSports.some(s => !s.conditions_locked && s.external_id?.startsWith(`${sport}::`))) continue;
       try {
-        const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h`;
-        const res = await fetch(url);
-        if (res.status === 422) continue;
-        if (!res.ok) throw new Error(`The Odds API : HTTP ${res.status}`);
-        const matches = await res.json();
-        if (!Array.isArray(matches)) continue;
+        const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${encodeURIComponent(oddsApiKey)}&regions=eu&markets=h2h`;
+        const matches = await fetchJson(url, 'The Odds API');
 
         for (const match of matches) {
           const extId = `${sport}::${match.id}`;
@@ -188,11 +209,11 @@ async function updateOddsAndCreateDrafts() {
               const opt = newOutcomes.find(ex => ex.label === label);
               if (opt) opt.odds = Number(o.price.toFixed(2));
             });
-            await requireSuccess(supabase.from('subjects').update({ outcomes: newOutcomes }).eq('id', existingSubject.id));
+            await refreshOdds(existingSubject, newOutcomes);
             continue;
           }
 
-          if (morningInParis && newSportCount < MAX_NEW_SPORT_DRAFTS) {
+          if (newSportCount < MAX_NEW_SPORT_DRAFTS) {
             const matchTime = new Date(match.commence_time);
             // All teams in the scanned competitions are eligible during the next 72 hours.
             if (matchTime > now && matchTime <= sportWindowEnd) {
@@ -204,7 +225,7 @@ async function updateOddsAndCreateDrafts() {
                   odds: Number(o.price.toFixed(2))
                 };
               });
-              await requireSuccess(supabase.from('subjects').insert({
+              const inserted = await insertDraft({
                 creator_id: adminId,
                 title: `${match.home_team} vs ${match.away_team}`,
                 category: 'Sport',
@@ -213,23 +234,38 @@ async function updateOddsAndCreateDrafts() {
                 outcomes: outcomes,
                 external_id: extId,
                 status: 'draft'
-              }));
-              newSportCount++;
-              console.log(`🆕 [Sport] Nouveau brouillon : ${match.home_team} vs ${match.away_team}`);
+              });
+              if (inserted) {
+                newSportCount++; summary.sportCreated++;
+                logger.log(`🆕 [Sport] Nouveau brouillon : ${match.home_team} vs ${match.away_team}`);
+              }
             }
           }
         }
       } catch (e) {
-        process.exitCode = 1;
-        console.error(`Erreur TheOddsAPI sur ${sport} :`, e.message);
+        reportError(`Erreur TheOddsAPI sur ${sport}`, e);
       }
     }
   } catch (e) {
-    process.exitCode = 1;
-    console.error("Erreur Sports :", e.message);
+    reportError('Erreur Sports', e);
   }
 
-  console.log("🎉 Fin de l'exécution du Bot IsaMarket.");
+  logger.log(`Bilan ${summary.day} : ${summary.sportCreated} nouveaux brouillons Sport, ${summary.polymarketCreated} Polymarket, ${summary.errors.length} erreur(s).`);
+  if (newSportCount === 0) logger.log('Aucune nouvelle suggestion Sport disponible pour ce jour.');
+  if (newPolyCount === 0) logger.log('Aucune nouvelle suggestion Polymarket disponible pour ce jour.');
+  return summary;
 }
 
-updateOddsAndCreateDrafts().catch((error) => { process.exitCode = 1; console.error(error.message); });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    process.exitCode = 1;
+    console.error('ERREUR: SUPABASE_SERVICE_ROLE_KEY manquante.');
+  } else {
+    const supabase = createClient(process.env.SUPABASE_URL || 'https://xdjitzgqjsgcupwwipzz.supabase.co', serviceKey,
+      { auth: { persistSession: false, autoRefreshToken: false } });
+    updateOddsAndCreateDrafts({ supabase, oddsApiKey: process.env.ODDS_API_KEY })
+      .then((summary) => { if (summary.errors.length) process.exitCode = 1; })
+      .catch((error) => { process.exitCode = 1; console.error(error.message); });
+  }
+}
